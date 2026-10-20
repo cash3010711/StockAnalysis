@@ -1,0 +1,38 @@
+schema: spec-driven
+
+# Project context (optional)
+# Add only constraints that should guide OpenSpec artifacts and workflows.
+# Include constraints an agent cannot infer by reading the code.
+# Keep general project documentation and discoverable codebase facts out.
+context: |
+  This project is a personal, locally-run web app that analyzes Taiwan-listed stocks (TWSE/TPEx).
+  It is for the owner's personal use only; it must not be designed as a public investment-advice service.
+  Designs and tasks only need to cover Windows; no macOS or Linux support is required.
+  Tech stack: Python + FastAPI backend (pandas/numpy for indicators and backtests),
+  React + TypeScript + Vite frontend, TradingView Lightweight Charts for K-line charts,
+  FinMind API (free token) as the data source, cached incrementally in local SQLite.
+  Win rates must come from historical backtests and must never be invented or model-guessed.
+  Backtests must avoid look-ahead bias: fundamentals take effect only from their publication date,
+  signals form after the close and fill at the next day's open, and fees (0.1425% x2) plus 0.3% transaction tax are deducted.
+  Write all artifacts in Traditional Chinese (繁體中文); keep code identifiers, file paths, and CLI commands in English.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Always include an explicit "out of scope" section
+  tasks:
+    - Break tasks into chunks of at most 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
