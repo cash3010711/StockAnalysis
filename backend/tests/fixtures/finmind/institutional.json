@@ -1,0 +1,76 @@
+{
+  "msg": "success",
+  "status": 200,
+  "data": [
+    {
+      "date": "2024-01-02",
+      "stock_id": "2330",
+      "buy": 0,
+      "name": "Foreign_Dealer_Self",
+      "sell": 0
+    },
+    {
+      "date": "2024-01-02",
+      "stock_id": "2330",
+      "buy": 80000,
+      "name": "Dealer_self",
+      "sell": 641052
+    },
+    {
+      "date": "2024-01-02",
+      "stock_id": "2330",
+      "buy": 25585,
+      "name": "Dealer_Hedging",
+      "sell": 472504
+    },
+    {
+      "date": "2024-01-02",
+      "stock_id": "2330",
+      "buy": 19034488,
+      "name": "Foreign_Investor",
+      "sell": 11202763
+    },
+    {
+      "date": "2024-01-02",
+      "stock_id": "2330",
+      "buy": 869000,
+      "name": "Investment_Trust",
+      "sell": 109685
+    },
+    {
+      "date": "2024-01-03",
+      "stock_id": "2330",
+      "buy": 0,
+      "name": "Foreign_Dealer_Self",
+      "sell": 0
+    },
+    {
+      "date": "2024-01-03",
+      "stock_id": "2330",
+      "buy": 335000,
+      "name": "Dealer_self",
+      "sell": 600000
+    },
+    {
+      "date": "2024-01-03",
+      "stock_id": "2330",
+      "buy": 217021,
+      "name": "Dealer_Hedging",
+      "sell": 201741
+    },
+    {
+      "date": "2024-01-03",
+      "stock_id": "2330",
+      "buy": 13430460,
+      "name": "Foreign_Investor",
+      "sell": 21022009
+    },
+    {
+      "date": "2024-01-03",
+      "stock_id": "2330",
+      "buy": 676140,
+      "name": "Investment_Trust",
+      "sell": 84010
+    }
+  ]
+}

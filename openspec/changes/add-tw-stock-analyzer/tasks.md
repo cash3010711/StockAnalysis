@@ -9,12 +9,12 @@
 
 ## 2. 資料層：FinMind 用戶端與 SQLite 快取
 
-- [ ] 2.1 實作 `data/finmind_client.py`：取得股票清單、日 K（還原權值）、三大法人、融資融券、月營收、季財報，並把 token 缺失、額度用盡轉成自訂例外；用實際 token 確認各資料集名稱與欄位，並錄製回應 fixture；驗證 mock HTTP 的單元測試涵蓋成功、`TOKEN_MISSING`、`QUOTA_EXCEEDED`
-- [ ] 2.2 實作 `data/cache.py`：建立 SQLite schema（各資料表、主鍵 `(stock_id, date)`、`effective_date`、`fetch_log`）與 upsert；驗證測試確認重複寫入不產生重複列
-- [ ] 2.3 實作 `data/publication.py` 推算生效日（優先用實際公布日；否則月營收用次月 10 日，季報用 5/15、8/14、11/14、3/31）；驗證測試涵蓋四季與跨年的 Q4
-- [ ] 2.4 實作增量更新流程：依 `fetch_log` 只抓新資料；台北時間 14:30 前只抓到前一交易日；已是最新則不發請求；驗證測試用假的 client 計算請求次數，確認第二次分析不重抓歷史資料
-- [ ] 2.5 實作額度用盡時改用快取並附警示、無快取時回傳錯誤，以及資料不足 5 年的警示；驗證測試涵蓋 `market-data` spec 的三個錯誤情境
-- [ ] 2.6 實作 `as_of(stock_id, date)` 時點正確的資料視圖；驗證測試確認 9/20 取不到 9 月營收、10/11 取得到
+- [x] 2.1 實作 `data/finmind_client.py`：取得股票清單、日 K（還原權值）、三大法人、融資融券、月營收、季財報，並把 token 缺失、額度用盡轉成自訂例外；用實際 token 確認各資料集名稱與欄位，並錄製回應 fixture；驗證 mock HTTP 的單元測試涵蓋成功、`TOKEN_MISSING`、`QUOTA_EXCEEDED`
+- [x] 2.2 實作 `data/cache.py`：建立 SQLite schema（各資料表、主鍵 `(stock_id, date)`、`effective_date`、`fetch_log`）與 upsert；驗證測試確認重複寫入不產生重複列
+- [x] 2.3 實作 `data/publication.py` 推算生效日（優先用實際公布日；否則月營收用次月 10 日，季報用 5/15、8/14、11/14、3/31）；驗證測試涵蓋四季與跨年的 Q4
+- [x] 2.4 實作增量更新流程：依 `fetch_log` 只抓新資料；台北時間 14:30 前只抓到前一交易日；已是最新則不發請求；驗證測試用假的 client 計算請求次數，確認第二次分析不重抓歷史資料
+- [x] 2.5 實作額度用盡時改用快取並附警示、無快取時回傳錯誤，以及資料不足 5 年的警示；驗證測試涵蓋 `market-data` spec 的三個錯誤情境
+- [x] 2.6 實作 `as_of(stock_id, date)` 時點正確的資料視圖；驗證測試確認 9/20 取不到 9 月營收、10/11 取得到
 
 ## 3. 股票查詢（stock-lookup）
 
