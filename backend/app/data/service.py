@@ -244,3 +244,8 @@ class DataService:
 
         # 3. No match found
         return []
+
+    def get_stock_name(self, stock_id: str) -> str:
+        """Get stock name, defaulting to stock_id if not found."""
+        name = self.repo.get_stock_name(stock_id)
+        return name if name else stock_id

@@ -487,6 +487,16 @@ class CacheRepository:
         now = datetime.now(timezone.utc)
         return (now - last_updated) > timedelta(days=max_age_days)
 
+    def get_stock_name(self, stock_id: str) -> Optional[str]:
+        """Get stock_name by stock_id from stock_info table."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT stock_name FROM stock_info WHERE stock_id = ? LIMIT 1", (stock_id,))
+            row = cursor.fetchone()
+            if row and row["stock_name"]:
+                return str(row["stock_name"])
+            return None
+
     def search_stocks(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Search supported common stocks matching query in stock_id or stock_name.
 

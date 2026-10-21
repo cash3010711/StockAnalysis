@@ -39,8 +39,8 @@
 
 ## 6. 分析 API
 
-- [ ] 6.1 實作 `GET /api/analysis/{stock_id}`：串接資料更新、今日分析、兩組回測，回傳評估日、警示、三層摘要、策略列表、交易明細、OHLCV；驗證 API 測試用錄製的 fixture 比對回應結構
-- [ ] 6.2 統一錯誤格式 `{code, message, hint}`（`TOKEN_MISSING`、`QUOTA_EXCEEDED`、`STOCK_NOT_SUPPORTED`、`INSUFFICIENT_HISTORY`）；驗證 API 測試涵蓋每種錯誤碼的 HTTP 狀態與內容
+- [x] 6.1 實作 `GET /api/analysis/{stock_id}`：串接資料更新、今日分析、兩組回測，回傳評估日、警示、三層摘要、策略列表、交易明細、OHLCV；驗證 API 測試用錄製的 fixture 比對回應結構
+- [x] 6.2 統一錯誤格式 `{code, message, hint}`（`TOKEN_MISSING`、`QUOTA_EXCEEDED`、`STOCK_NOT_SUPPORTED`、`INSUFFICIENT_HISTORY`）；驗證 API 測試涵蓋每種錯誤碼的 HTTP 狀態與內容
 
 ## 7. 前端頁面（analysis-dashboard）
 
