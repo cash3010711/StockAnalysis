@@ -4,8 +4,8 @@
 
 - [x] 1.1 建立 `backend/`（uv 專案：fastapi、uvicorn、pandas、numpy、httpx、python-dotenv、pytest），以及 `app/{api,data,analysis,backtest}`、`tests/` 目錄；驗證 `uv run pytest` 可執行（0 個測試、無錯誤）
 - [x] 1.2 建立 FastAPI 進入點與 `GET /api/health`，用 `.env` 載入 `FINMIND_TOKEN`，新增 `.env.example`，並把 `.env`、`data/cache.db` 加入 `.gitignore`；驗證 `uv run uvicorn app.main:app` 啟動後，`/api/health` 回傳 200
-- [ ] 1.3 用 Vite 建立 `frontend/`（React + TypeScript），安裝 `lightweight-charts`，設定 `/api` proxy 到 `localhost:8000`；驗證 `npm run dev` 的頁面能顯示 `/api/health` 的結果
-- [ ] 1.4 撰寫根目錄 `README.md`：申請 FinMind token 的步驟，以及 Windows 上啟動前後端的指令；驗證照著 README 可以從乾淨環境把兩者跑起來
+- [x] 1.3 用 Vite 建立 `frontend/`（React + TypeScript），安裝 `lightweight-charts`，設定 `/api` proxy 到 `localhost:8000`；驗證 `npm run dev` 的頁面能顯示 `/api/health` 的結果
+- [x] 1.4 撰寫根目錄 `README.md`：申請 FinMind token 的步驟，以及 Windows 上啟動前後端的指令；驗證照著 README 可以從乾淨環境把兩者跑起來
 
 ## 2. 資料層：FinMind 用戶端與 SQLite 快取
 
