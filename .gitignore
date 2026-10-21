@@ -1,0 +1,27 @@
+# Environments and secrets
+.env
+*.env
+.env.*
+!.env.example
+
+# SQLite database and cache
+cache.db
+*.db
+*.sqlite3
+data/cache.db
+backend/data/cache.db
+backend/app/data/cache.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+ENV/
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/

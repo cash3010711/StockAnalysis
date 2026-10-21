@@ -75,7 +75,7 @@ frontend/  React + TypeScript + Vite + TradingView Lightweight Charts
 - 開發時用 Vite proxy 將 `/api` 轉到 `localhost:8000`。
 
 ### 8. 預設門檻集中管理
-- 規格中的門檻值集中在 `analysis/params.py`：營收年增 > 0、近四季 EPS > 0、負債比 < 60%、法人 10 日買超、融資 10 日增幅 < 20%、ATR 2／3 倍、持有 20 日、樣本門檻 20 筆。
+- 規格中的門檻值集中在 `analysis/params.py`：營收年增 > 0、近四季 EPS > 0、負債比 < 60%、法人 10 日買超、融資 10 日增幅 < 20%、布林通道（20日/2倍標準差/近120日寬度最低20%/量>1.5倍均量）、ATR 2／3 倍、持有 20 日、樣本門檻 20 筆。
 - 這些是合理的起始預設值，不是最佳化的結果。日後要調整時只改這個檔案，並同步修改規格。
 
 ## Risks / Trade-offs

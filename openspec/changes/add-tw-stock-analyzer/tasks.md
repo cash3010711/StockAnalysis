@@ -2,8 +2,8 @@
 
 ## 1. 專案骨架與環境
 
-- [ ] 1.1 建立 `backend/`（uv 專案：fastapi、uvicorn、pandas、numpy、httpx、python-dotenv、pytest），以及 `app/{api,data,analysis,backtest}`、`tests/` 目錄；驗證 `uv run pytest` 可執行（0 個測試、無錯誤）
-- [ ] 1.2 建立 FastAPI 進入點與 `GET /api/health`，用 `.env` 載入 `FINMIND_TOKEN`，新增 `.env.example`，並把 `.env`、`data/cache.db` 加入 `.gitignore`；驗證 `uv run uvicorn app.main:app` 啟動後，`/api/health` 回傳 200
+- [x] 1.1 建立 `backend/`（uv 專案：fastapi、uvicorn、pandas、numpy、httpx、python-dotenv、pytest），以及 `app/{api,data,analysis,backtest}`、`tests/` 目錄；驗證 `uv run pytest` 可執行（0 個測試、無錯誤）
+- [x] 1.2 建立 FastAPI 進入點與 `GET /api/health`，用 `.env` 載入 `FINMIND_TOKEN`，新增 `.env.example`，並把 `.env`、`data/cache.db` 加入 `.gitignore`；驗證 `uv run uvicorn app.main:app` 啟動後，`/api/health` 回傳 200
 - [ ] 1.3 用 Vite 建立 `frontend/`（React + TypeScript），安裝 `lightweight-charts`，設定 `/api` proxy 到 `localhost:8000`；驗證 `npm run dev` 的頁面能顯示 `/api/health` 的結果
 - [ ] 1.4 撰寫根目錄 `README.md`：申請 FinMind token 的步驟，以及 Windows 上啟動前後端的指令；驗證照著 README 可以從乾淨環境把兩者跑起來
 
@@ -23,9 +23,9 @@
 
 ## 4. 技術指標與三層條件（signal-analysis）
 
-- [ ] 4.1 實作 `analysis/indicators.py`：MA、ATR(14)、MACD(12,26,9)、KD(9,3,3)、20 日最高價、20 日均量；驗證測試用手算的小型 fixture 比對數值（誤差 < 1e-6）
+- [ ] 4.1 實作 `analysis/indicators.py`：MA、ATR(14)、MACD(12,26,9)、KD(9,3,3)、Bollinger Bands(20, 2)、20 日最高價、20 日均量；驗證測試用手算的小型 fixture 比對數值（誤差 < 1e-6）
 - [ ] 4.2 實作 `analysis/params.py` 集中預設門檻，以及 `analysis/layers.py` 的基本面、籌碼面每日判定序列（用 `merge_asof` 依 `effective_date` 展開），並附未通過原因字串；驗證測試涵蓋 spec 的通過與未通過情境
-- [ ] 4.3 實作 `analysis/strategies.py` 的 4 個策略訊號序列（均線拉回 20MA、帶量突破 20 日新高、MACD 金叉、KD 低檔金叉）；驗證每個策略都有成立與不成立的 fixture 測試
+- [ ] 4.3 實作 `analysis/strategies.py` 的 5 個策略訊號序列（均線拉回 20MA、帶量突破 20 日新高、MACD 金叉、KD 低檔金叉、布林通道壓縮突破）；驗證每個策略都有成立與不成立的 fixture 測試
 - [ ] 4.4 實作 `analysis/exits.py`：用 ATR 計算停利、停損，並依台股升降單位四捨五入；驗證測試確認收盤 100、ATR 3 時得到 94／109，並涵蓋升降單位邊界（10、50、100、500、1000 元）
 - [ ] 4.5 實作今日分析組裝：評估日（最近已收盤交易日）、每個策略的進場點位或觀望狀態、觸發條件價位（例如突破所需價位），以及各層原因；驗證測試涵蓋「只差技術面」與「基本面未通過」兩個 spec 情境
 
