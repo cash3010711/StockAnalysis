@@ -44,6 +44,20 @@ class FinMindApiError(FinMindError):
         self.status_code = status_code
 
 
+class StockNotSupportedError(FinMindError):
+    """Raised when querying or analyzing unsupported securities (ETF, warrant, emerging, preferred)."""
+    code: str = "STOCK_NOT_SUPPORTED"
+    status_code: int = 400
+
+    def __init__(
+        self,
+        message: str = "目前只支援上市、上櫃普通股",
+        hint: str = "目前只支援上市、上櫃普通股",
+    ):
+        super().__init__(message, hint)
+        self.status_code = 400
+
+
 class InsufficientDataError(FinMindError):
     """Raised when data history is insufficient."""
     code: str = "INSUFFICIENT_HISTORY"

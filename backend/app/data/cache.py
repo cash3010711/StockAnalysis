@@ -1,5 +1,5 @@
 """SQLite cache repository for Taiwan stock market data."""
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
 import sqlite3
@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from app.data.publication import get_daily_effective_date
+from app.data.stock_filter import format_market
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "cache.db"
 
@@ -24,7 +25,7 @@ class CacheRepository:
 
         self._mem_conn: Optional[sqlite3.Connection] = None
         if self.db_path == ":memory:":
-            self._mem_conn = sqlite3.connect(":memory:")
+            self._mem_conn = sqlite3.connect(":memory:", check_same_thread=False)
             self._mem_conn.row_factory = sqlite3.Row
         else:
             Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -34,7 +35,7 @@ class CacheRepository:
     def _get_connection(self) -> sqlite3.Connection:
         if self._mem_conn is not None:
             return self._mem_conn
-        conn = sqlite3.connect(str(self.db_path))
+        conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -134,9 +135,16 @@ class CacheRepository:
                 stock_name TEXT NOT NULL,
                 type TEXT,
                 industry_category TEXT,
+                is_supported INTEGER DEFAULT 1,
                 updated_at TEXT NOT NULL
             )
             """)
+
+            # Ensure is_supported column exists for backward compatibility
+            cursor.execute("PRAGMA table_info(stock_info)")
+            stock_cols = [r[1] for r in cursor.fetchall()]
+            if "is_supported" not in stock_cols:
+                cursor.execute("ALTER TABLE stock_info ADD COLUMN is_supported INTEGER DEFAULT 1")
 
             # 7. Fetch Log (tracks incremental sync)
             cursor.execute("""
@@ -424,23 +432,25 @@ class CacheRepository:
                 )
             conn.commit()
 
-    def upsert_stock_info(self, df: pd.DataFrame):
+    def upsert_stock_info(self, df: pd.DataFrame, updated_at: Optional[str] = None):
         """Upsert stock lookup table."""
         if df.empty:
             return
-        now_str = datetime.now(timezone.utc).isoformat()
+        now_str = updated_at or datetime.now(timezone.utc).isoformat()
         with self._get_connection() as conn:
             cursor = conn.cursor()
             for _, r in df.iterrows():
+                is_supp = int(r.get("is_supported", 1))
                 cursor.execute(
                     """
                     INSERT INTO stock_info (
-                        stock_id, stock_name, type, industry_category, updated_at
-                    ) VALUES (?, ?, ?, ?, ?)
+                        stock_id, stock_name, type, industry_category, is_supported, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT(stock_id) DO UPDATE SET
                         stock_name = excluded.stock_name,
                         type = excluded.type,
                         industry_category = excluded.industry_category,
+                        is_supported = excluded.is_supported,
                         updated_at = excluded.updated_at
                     """,
                     (
@@ -448,10 +458,126 @@ class CacheRepository:
                         str(r["stock_name"]),
                         str(r.get("type", "")),
                         str(r.get("industry_category", "")),
+                        is_supp,
                         now_str,
                     ),
                 )
             conn.commit()
+
+    def get_stock_info_last_updated(self) -> Optional[datetime]:
+        """Return the most recent updated_at timestamp in stock_info table."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT MAX(updated_at) as last_updated FROM stock_info")
+            row = cursor.fetchone()
+            if not row or not row["last_updated"]:
+                return None
+            try:
+                return datetime.fromisoformat(row["last_updated"])
+            except ValueError:
+                return None
+
+    def is_stock_info_stale(self, max_age_days: int = 7) -> bool:
+        """Check whether stock_info is missing or has not been updated within max_age_days."""
+        last_updated = self.get_stock_info_last_updated()
+        if last_updated is None:
+            return True
+        if last_updated.tzinfo is None:
+            last_updated = last_updated.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        return (now - last_updated) > timedelta(days=max_age_days)
+
+    def search_stocks(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Search supported common stocks matching query in stock_id or stock_name.
+
+        Prioritizes:
+        0. Exact stock_id match
+        1. Exact stock_name match
+        2. stock_id prefix match
+        3. stock_name prefix match
+        4. stock_id substring match
+        5. stock_name substring match
+        Tie-breaker: numerical/alphabetical stock_id.
+        """
+        q = query.strip()
+        if not q:
+            return []
+
+        pattern = f"%{q}%"
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT stock_id, stock_name, type, industry_category
+                FROM stock_info
+                WHERE is_supported = 1 AND (stock_id LIKE ? OR stock_name LIKE ?)
+                """,
+                (pattern, pattern),
+            )
+            rows = cursor.fetchall()
+
+        candidates = [dict(r) for r in rows]
+
+        def rank_key(item: Dict[str, Any]):
+            sid = item["stock_id"]
+            sname = item["stock_name"]
+            if sid == q:
+                return (0, 0, sid)
+            if sname == q:
+                return (1, 0, sid)
+            if sid.startswith(q):
+                return (2, 0, sid)
+            if sname.startswith(q):
+                return (3, 0, sid)
+            if q in sid:
+                return (4, sid.find(q), sid)
+            return (5, sname.find(q), sid)
+
+        candidates.sort(key=rank_key)
+        top_candidates = candidates[:limit]
+
+        return [
+            {
+                "stock_id": item["stock_id"],
+                "stock_name": item["stock_name"],
+                "name": item["stock_name"],
+                "market": format_market(item.get("type", "")),
+                "type": format_market(item.get("type", "")),
+                "industry_category": item.get("industry_category", ""),
+            }
+            for item in top_candidates
+        ]
+
+    def is_unsupported_stock(self, query: str) -> bool:
+        """Check whether query matches a known unsupported security (ETF, warrant, emerging, preferred)."""
+        q = query.strip()
+        if not q:
+            return False
+
+        # Pattern-based heuristic checks
+        # Taiwan ETF / ETN start with 00, 01, 02
+        if q.startswith(("00", "01", "02")):
+            return True
+        # Warrants: 6 alphanumeric / digits
+        if len(q) == 6:
+            return True
+        # Preferred stocks: 4 digits + letter (e.g. 2881A)
+        if len(q) == 5 and q[:4].isdigit() and q[4].isalpha():
+            return True
+
+        # Database check against unsupported entries in stock_info
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT stock_id FROM stock_info
+                WHERE is_supported = 0 AND (stock_id = ? OR stock_name = ? OR stock_id LIKE ? OR stock_name LIKE ?)
+                LIMIT 1
+                """,
+                (q, q, f"%{q}%", f"%{q}%"),
+            )
+            row = cursor.fetchone()
+            return row is not None
 
     # --- Query Operations with Point-in-time (as_of) Support ---
 

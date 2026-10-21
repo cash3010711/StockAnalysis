@@ -1,7 +1,7 @@
 """Data service coordinating incremental sync, cache, and point-in-time data views."""
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from app.data.cache import CacheRepository
@@ -9,8 +9,10 @@ from app.data.exceptions import (
     FinMindError,
     FinMindQuotaExceededError,
     FinMindTokenMissingError,
+    StockNotSupportedError,
 )
 from app.data.finmind_client import FinMindClient
+from app.data.stock_filter import is_supported_common_stock
 
 TAIPEI_TZ = timezone(timedelta(hours=8))
 MARKET_CLOSE_TIME = time(14, 30)
@@ -189,3 +191,56 @@ class DataService:
     def as_of(self, stock_id: str, as_of_date: str) -> Dict[str, pd.DataFrame]:
         """Return point-in-time view as of the specified date."""
         return self.repo.as_of(stock_id, as_of_date)
+
+    def sync_stock_info(self, force: bool = False, max_age_days: int = 7) -> bool:
+        """Sync stock_info table if stale (> 7 days) or forced."""
+        if not force and not self.repo.is_stock_info_stale(max_age_days=max_age_days):
+            return False
+
+        df = self.client.get_stock_info()
+        if df.empty:
+            return False
+
+        # Tag each row with is_supported
+        df = df.copy()
+        df["is_supported"] = df.apply(
+            lambda r: int(
+                is_supported_common_stock(
+                    stock_id=str(r.get("stock_id", "")),
+                    stock_name=str(r.get("stock_name", "")),
+                    stock_type=str(r.get("type", "")),
+                    industry_category=str(r.get("industry_category", "")),
+                )
+            ),
+            axis=1,
+        )
+        self.repo.upsert_stock_info(df)
+        return True
+
+    def lookup_stocks(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Search stocks matching query.
+
+        - Automatically syncs stock_info if cache is older than 7 days.
+        - Returns up to limit (default 10) matching common stocks.
+        - If query matches an unsupported security (ETF, warrant, emerging, preferred),
+          raises StockNotSupportedError.
+        - If query doesn't match any security, returns an empty list.
+        """
+        q = (query or "").strip()
+        if not q:
+            return []
+
+        # Ensure cache freshness (auto-refresh if > 7 days)
+        self.sync_stock_info(max_age_days=7)
+
+        # 1. Search supported common stocks
+        results = self.repo.search_stocks(q, limit=limit)
+        if results:
+            return results
+
+        # 2. Check if the query refers to an unsupported security (e.g. 0050)
+        if self.repo.is_unsupported_stock(q):
+            raise StockNotSupportedError()
+
+        # 3. No match found
+        return []
