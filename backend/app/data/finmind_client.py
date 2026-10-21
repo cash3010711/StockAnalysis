@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 import pandas as pd
 
-from app.config import get_finmind_token
+from app.config import get_finmind_token, is_empty_token_allowed
 from app.data.exceptions import (
     FinMindApiError,
     FinMindQuotaExceededError,
@@ -27,11 +27,22 @@ class FinMindClient:
         base_url: str = DEFAULT_BASE_URL,
         http_client: Optional[httpx.Client] = None,
         verify_ssl: bool = False,
+        allow_empty_token: Optional[bool] = None,
     ):
-        self.token = token if token is not None else get_finmind_token()
         self.base_url = base_url
         self._external_client = http_client is not None
         self._client = http_client or httpx.Client(verify=verify_ssl, timeout=30.0)
+
+        if token is not None:
+            self.token = token
+            self.allow_empty_token = (
+                allow_empty_token if allow_empty_token is not None else False
+            )
+        else:
+            self.token = get_finmind_token()
+            self.allow_empty_token = (
+                allow_empty_token if allow_empty_token is not None else is_empty_token_allowed()
+            )
 
     def close(self):
         """Close underlying HTTP client if created internally."""
@@ -46,6 +57,8 @@ class FinMindClient:
 
     def _ensure_token(self):
         """Ensure token exists, otherwise raise FinMindTokenMissingError."""
+        if self.allow_empty_token:
+            return
         if not self.token or not self.token.strip():
             raise FinMindTokenMissingError()
 
@@ -63,7 +76,7 @@ class FinMindClient:
         if params:
             req_params.update(params)
 
-        if self.token:
+        if self.token and self.token.strip():
             req_params["token"] = self.token
 
         try:

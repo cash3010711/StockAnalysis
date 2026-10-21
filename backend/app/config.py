@@ -17,3 +17,9 @@ else:
 def get_finmind_token() -> str:
     """Return FINMIND_TOKEN from environment."""
     return os.getenv("FINMIND_TOKEN", "")
+
+
+def is_empty_token_allowed() -> bool:
+    """Return whether empty FinMind token is allowed (uses public quota)."""
+    return os.getenv("FINMIND_ALLOW_NO_TOKEN", "false").lower() in ("true", "1", "yes")
+
