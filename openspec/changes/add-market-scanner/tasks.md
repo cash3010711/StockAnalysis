@@ -7,9 +7,9 @@
 
 ## 2. 後端兩階段選股掃描引擎與串流 API
 
-- [ ] 2.1 在 `backend/app/analysis/scanner.py` 實作 `scan_single_stock`（含向量化技術訊號初篩、Point-in-Time 三層檢驗、進出場點位計算與觸發策略歷史回測統計）及 `iter_scan_events`（含 FinMind API 額度上限熔斷降級機制）
-- [ ] 2.2 在 `backend/app/api/scanner.py` 新增 `GET /api/scanner/options`、`POST /api/scanner/run` 與 `POST /api/scanner/stream`（NDJSON 串流）端點，並於 `backend/app/main.py` 註冊 router
-- [ ] 2.3 新增 `backend/tests/test_scanner.py` 測試選項端點、三層與自訂條件過濾、NDJSON 串流事件及 API 額度上限自動降級行為，執行 `uv run --project backend pytest` 驗證全數通過
+- [x] 2.1 在 `backend/app/analysis/scanner.py` 實作 `scan_single_stock`（含向量化技術訊號初篩、Point-in-Time 三層檢驗、進出場點位計算與觸發策略歷史回測統計）及 `iter_scan_events`（含 FinMind API 額度上限熔斷降級機制）
+- [x] 2.2 在 `backend/app/api/scanner.py` 新增 `GET /api/scanner/options`、`POST /api/scanner/run` 與 `POST /api/scanner/stream`（NDJSON 串流）端點，並於 `backend/app/main.py` 註冊 router
+- [x] 2.3 新增 `backend/tests/test_scanner.py` 測試選項端點、三層與自訂條件過濾、NDJSON 串流事件及 API 額度上限自動降級行為，執行 `uv run --project backend pytest` 驗證全數通過
 
 ## 3. 前端選股掃描介面與雙分頁整合
 

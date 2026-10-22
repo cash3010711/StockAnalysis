@@ -1,9 +1,15 @@
 """Market scanner pool resolution and stock screening utilities."""
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
+import pandas as pd
 
 from app.analysis import params
-from app.data.exceptions import FinMindError
+from app.analysis.assembler import assemble_today_analysis
+from app.analysis.exits import calculate_exit_levels, round_to_tick
+from app.analysis.indicators import compute_all_indicators
+from app.analysis.strategies import evaluate_all_strategies
+from app.backtest.runner import run_all_backtests
+from app.data.exceptions import FinMindError, FinMindQuotaExceededError
 from app.data.service import DataService
 from app.data.stock_filter import format_market
 
@@ -179,3 +185,292 @@ def resolve_scan_pool(service: DataService, config: ScanFilterConfig) -> List[Di
         stocks = stocks[: config.limit]
 
     return stocks
+
+
+def scan_single_stock(
+    service: DataService,
+    stock: Union[str, Dict[str, str]],
+    config: ScanFilterConfig,
+    quota_exceeded_session: bool = False,
+) -> Tuple[Optional[Dict[str, Any]], bool]:
+    """Screen a single stock using the two-stage fast pipeline.
+
+    Stage 1:
+      - Synchronize latest data if requested and not in quota circuit-breaker mode.
+      - Vectorized technical indicators & strategy evaluation.
+      - If no requested strategy triggers on the last closed trading day, short-circuit immediately.
+
+    Stage 2:
+      - Point-in-Time 3-layer evaluation (fundamentals & chips).
+      - Check user filter requirements (require_fundamental, require_chips).
+      - Compute entry, stop-loss, take-profit prices and holding days.
+      - Historical backtest run ONLY for triggered strategies.
+      - Select best strategy win rate / avg return according to filter semantics.
+
+    Returns:
+      (matched_data_dict_or_None, quota_hit_boolean)
+    """
+    stock_meta = _enrich_stock_metadata(service, stock) if isinstance(stock, str) else stock
+    stock_id = stock_meta["stock_id"]
+    quota_hit = False
+
+    # Sync latest data if requested and not in quota circuit-breaker mode
+    if config.sync_latest and not quota_exceeded_session:
+        try:
+            sync_result = service.sync_stock(stock_id)
+            if sync_result.quota_exceeded:
+                quota_hit = True
+        except FinMindQuotaExceededError:
+            quota_hit = True
+        except Exception:
+            # Continue scanning with local cache on any sync errors
+            pass
+
+    daily_k = service.repo.get_daily_k(stock_id)
+    if daily_k.empty or len(daily_k) < 35:
+        return None, quota_hit
+
+    # Stage 1: Vectorized Fast Pre-check on technical signals
+    df_ind = compute_all_indicators(daily_k)
+    strat_signals = evaluate_all_strategies(df_ind)
+
+    # Check last closed trading day
+    triggered_strategies = [
+        strat for strat in config.strategies
+        if strat in strat_signals and bool(strat_signals[strat].iloc[-1])
+    ]
+
+    # If no configured strategy triggered, short-circuit immediately
+    if not triggered_strategies:
+        return None, quota_hit
+
+    # Stage 2: Point-in-Time 3-layer evaluation & backtest for triggered strategies
+    eval_row = df_ind.iloc[-1]
+    eval_date = str(eval_row["date"])
+    close = float(eval_row["close"])
+    atr14 = float(eval_row["atr14"]) if pd.notna(eval_row.get("atr14")) else 0.0
+
+    data = service.as_of(stock_id, eval_date)
+    today_analysis = assemble_today_analysis(
+        stock_id=stock_id,
+        daily_k=daily_k,
+        monthly_revenue=data.get("monthly_revenue", pd.DataFrame()),
+        quarterly_financials=data.get("quarterly_financials", pd.DataFrame()),
+        institutional_investors=data.get("institutional_investors", pd.DataFrame()),
+        margin_short=data.get("margin_short", pd.DataFrame()),
+    )
+
+    # Check fundamental condition if required
+    if config.require_fundamental and not today_analysis.fundamental.passed:
+        return None, quota_hit
+
+    # Check chips condition if required
+    if config.require_chips and not today_analysis.chips.passed:
+        return None, quota_hit
+
+    # Compute entry / exit levels
+    entry_price = round_to_tick(close)
+    stop_loss, take_profit, max_holding_days = calculate_exit_levels(close, atr14)
+
+    # Run historical backtests ONLY for triggered strategies
+    backtest_summary = run_all_backtests(
+        stock_id=stock_id,
+        daily_k=daily_k,
+        monthly_revenue=data.get("monthly_revenue", pd.DataFrame()),
+        quarterly_financials=data.get("quarterly_financials", pd.DataFrame()),
+        institutional_investors=data.get("institutional_investors", pd.DataFrame()),
+        margin_short=data.get("margin_short", pd.DataFrame()),
+        strategy_names=triggered_strategies,
+    )
+
+    # Calculate best win rate and avg return
+    # If 3-layer conditions required, prefer three_layer stats; if relaxed or no 3-layer trades, fallback to tech_only
+    best_strat_name: Optional[str] = triggered_strategies[0] if triggered_strategies else None
+    best_win_rate_pct: Optional[float] = None
+    best_avg_return_pct: Optional[float] = None
+
+    use_three_layer = config.require_fundamental and config.require_chips
+    strategy_stats: List[Dict[str, Any]] = []
+
+    candidates: List[Tuple[str, Optional[float], Optional[float]]] = []
+
+    for res in backtest_summary.results:
+        st_three = res.three_layer
+        st_tech = res.tech_only
+
+        chosen = None
+        if use_three_layer and st_three and st_three.has_trades and st_three.win_rate_pct is not None:
+            chosen = st_three
+        elif st_tech and st_tech.has_trades and st_tech.win_rate_pct is not None:
+            chosen = st_tech
+
+        w_rate = chosen.win_rate_pct if chosen else None
+        avg_ret = chosen.avg_return_pct if chosen else None
+
+        candidates.append((res.strategy_name, w_rate, avg_ret))
+
+        strategy_stats.append({
+            "strategy_name": res.strategy_name,
+            "can_backtest": res.can_backtest,
+            "three_layer_win_rate_pct": st_three.win_rate_pct if st_three else None,
+            "three_layer_avg_return_pct": st_three.avg_return_pct if st_three else None,
+            "tech_only_win_rate_pct": st_tech.win_rate_pct if st_tech else None,
+            "tech_only_avg_return_pct": st_tech.avg_return_pct if st_tech else None,
+        })
+
+    # Pick the best candidate (highest win rate, then highest avg return)
+    valid_candidates = [c for c in candidates if c[1] is not None]
+    if valid_candidates:
+        valid_candidates.sort(key=lambda c: (c[1], c[2] if c[2] is not None else -9999.0), reverse=True)
+        best_strat_name = valid_candidates[0][0]
+        best_win_rate_pct = valid_candidates[0][1]
+        best_avg_return_pct = valid_candidates[0][2]
+    elif triggered_strategies:
+        best_strat_name = triggered_strategies[0]
+
+    matched_data = {
+        "stock_id": stock_id,
+        "stock_name": stock_meta.get("stock_name") or service.get_stock_name(stock_id) or stock_id,
+        "market": stock_meta.get("market") or "上市",
+        "type": stock_meta.get("type") or "twse",
+        "industry_category": stock_meta.get("industry_category") or "",
+        "close": close,
+        "evaluation_date": eval_date,
+        "triggered_strategies": triggered_strategies,
+        "entry_price": entry_price,
+        "stop_loss": stop_loss,
+        "take_profit": take_profit,
+        "max_holding_days": max_holding_days,
+        "fundamental_passed": today_analysis.fundamental.passed,
+        "revenue_yoy": today_analysis.fundamental.revenue_yoy,
+        "eps_4q_sum": today_analysis.fundamental.eps_4q_sum,
+        "debt_ratio": today_analysis.fundamental.debt_ratio,
+        "fundamental_reason": today_analysis.fundamental.reason,
+        "chips_passed": today_analysis.chips.passed,
+        "foreign_trust_net_buy_10d": today_analysis.chips.foreign_trust_net_buy_10d,
+        "margin_increase_rate_10d": today_analysis.chips.margin_increase_rate_10d,
+        "chips_reason": today_analysis.chips.reason,
+        "best_strategy_name": best_strat_name,
+        "best_win_rate_pct": best_win_rate_pct,
+        "best_avg_return_pct": best_avg_return_pct,
+        "strategy_stats": strategy_stats,
+    }
+
+    return matched_data, quota_hit
+
+
+def iter_scan_events(
+    service: DataService,
+    config: ScanFilterConfig,
+) -> Generator[Dict[str, Any], None, None]:
+    """Iterate through the scan pool, yielding start, match, progress, and done events."""
+    stocks = resolve_scan_pool(service, config)
+    total = len(stocks)
+
+    yield {
+        "event": "start",
+        "total": total,
+        "pool": config.pool,
+        "sync_latest": config.sync_latest,
+    }
+
+    if total == 0:
+        yield {
+            "event": "done",
+            "total": 0,
+            "scanned": 0,
+            "matched_count": 0,
+            "quota_exceeded": False,
+            "warnings": [],
+        }
+        return
+
+    quota_exceeded_session = False
+    warnings: List[str] = []
+    matched_count = 0
+    scanned = 0
+
+    for idx, stock in enumerate(stocks, start=1):
+        stock_id = stock.get("stock_id", "")
+        stock_name = stock.get("stock_name", "")
+
+        matched_data, quota_hit = scan_single_stock(
+            service=service,
+            stock=stock,
+            config=config,
+            quota_exceeded_session=quota_exceeded_session,
+        )
+
+        if quota_hit and not quota_exceeded_session:
+            quota_exceeded_session = True
+            warn = "FinMind API 請求額度已達上限，後續標的已自動降級為本機快取模式"
+            if warn not in warnings:
+                warnings.append(warn)
+
+        scanned = idx
+
+        if matched_data is not None:
+            matched_count += 1
+            yield {
+                "event": "match",
+                "data": matched_data,
+                "current": scanned,
+                "total": total,
+                "matched_count": matched_count,
+            }
+
+        yield {
+            "event": "progress",
+            "current": scanned,
+            "total": total,
+            "stock_id": stock_id,
+            "stock_name": stock_name,
+            "matched_count": matched_count,
+            "quota_exceeded": quota_exceeded_session,
+        }
+
+    yield {
+        "event": "done",
+        "total": total,
+        "scanned": scanned,
+        "matched_count": matched_count,
+        "quota_exceeded": quota_exceeded_session,
+        "warnings": warnings,
+    }
+
+
+def run_scan(service: DataService, config: ScanFilterConfig) -> Dict[str, Any]:
+    """Run full market scan synchronously and return collected results."""
+    matched_results: List[Dict[str, Any]] = []
+    quota_exceeded = False
+    warnings: List[str] = []
+    total = 0
+    scanned = 0
+
+    for event in iter_scan_events(service, config):
+        ev = event.get("event")
+        if ev == "start":
+            total = event.get("total", 0)
+        elif ev == "match":
+            matched_results.append(event["data"])
+        elif ev == "progress":
+            scanned = event.get("current", scanned)
+            if event.get("quota_exceeded"):
+                quota_exceeded = True
+        elif ev == "done":
+            total = event.get("total", total)
+            scanned = event.get("scanned", scanned)
+            if event.get("quota_exceeded"):
+                quota_exceeded = True
+            for w in event.get("warnings", []):
+                if w not in warnings:
+                    warnings.append(w)
+
+    return {
+        "total": total,
+        "scanned": scanned,
+        "matched_count": len(matched_results),
+        "quota_exceeded": quota_exceeded,
+        "warnings": warnings,
+        "results": matched_results,
+    }
