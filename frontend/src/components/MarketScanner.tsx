@@ -317,10 +317,17 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
                 border: '1px solid #cbd5e1',
                 fontSize: '14px',
                 background: '#ffffff',
+                backgroundColor: '#ffffff',
+                color: '#0f172a',
+                colorScheme: 'light',
               }}
             >
               {pools.map((p) => (
-                <option key={p.id} value={p.id}>
+                <option
+                  key={p.id}
+                  value={p.id}
+                  style={{ color: '#0f172a', backgroundColor: '#ffffff' }}
+                >
                   {p.name} {p.id === 'cached' ? `(${cachedCount}檔)` : ''}
                 </option>
               ))}
@@ -347,11 +354,20 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
                 border: '1px solid #cbd5e1',
                 fontSize: '14px',
                 background: '#ffffff',
+                backgroundColor: '#ffffff',
+                color: '#0f172a',
+                colorScheme: 'light',
               }}
             >
-              <option value="">全部產業（不限）</option>
+              <option value="" style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>
+                全部產業（不限）
+              </option>
               {industries.map((ind) => (
-                <option key={ind} value={ind}>
+                <option
+                  key={ind}
+                  value={ind}
+                  style={{ color: '#0f172a', backgroundColor: '#ffffff' }}
+                >
                   {ind}
                 </option>
               ))}

@@ -140,6 +140,9 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
             border: '1px solid #cbd5e1',
             outline: 'none',
             boxSizing: 'border-box',
+            color: '#0f172a',
+            backgroundColor: '#ffffff',
+            colorScheme: 'light',
           }}
         />
         {isLoading && (
