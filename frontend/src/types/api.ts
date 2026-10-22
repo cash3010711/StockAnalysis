@@ -112,3 +112,119 @@ export class ApiError extends Error {
     this.hint = data.hint
   }
 }
+
+export interface ScanOptionPool {
+  id: string
+  name: string
+}
+
+export interface ScannerOptionsDefaults {
+  pool: string
+  industry_category: string | null
+  sync_latest: boolean
+  require_fundamental: boolean
+  require_chips: boolean
+  strategies: string[]
+}
+
+export interface ScannerOptionsResponse {
+  pools: ScanOptionPool[]
+  industries: string[]
+  strategies: string[]
+  cached_count: number
+  defaults: ScannerOptionsDefaults
+}
+
+export interface ScanRequest {
+  pool?: string
+  industry_category?: string | null
+  sync_latest?: boolean
+  require_fundamental?: boolean
+  require_chips?: boolean
+  strategies?: string[]
+  limit?: number | null
+}
+
+export interface StrategyStatItem {
+  strategy_name: string
+  can_backtest: boolean
+  three_layer_win_rate_pct?: number | null
+  three_layer_avg_return_pct?: number | null
+  tech_only_win_rate_pct?: number | null
+  tech_only_avg_return_pct?: number | null
+}
+
+export interface ScanMatchedStock {
+  stock_id: string
+  stock_name: string
+  market: string
+  type: string
+  industry_category?: string | null
+  close: number
+  evaluation_date: string
+  triggered_strategies: string[]
+  entry_price?: number | null
+  stop_loss?: number | null
+  take_profit?: number | null
+  max_holding_days?: number | null
+  fundamental_passed: boolean
+  revenue_yoy?: number | null
+  eps_4q_sum?: number | null
+  debt_ratio?: number | null
+  fundamental_reason: string
+  chips_passed: boolean
+  foreign_trust_net_buy_10d?: number | null
+  margin_increase_rate_10d?: number | null
+  chips_reason: string
+  best_strategy_name?: string | null
+  best_win_rate_pct?: number | null
+  best_avg_return_pct?: number | null
+  strategy_stats: StrategyStatItem[]
+}
+
+export interface ScanRunResponse {
+  total: number
+  scanned: number
+  matched_count: number
+  quota_exceeded: boolean
+  warnings: string[]
+  results: ScanMatchedStock[]
+}
+
+export interface ScanStartEvent {
+  event: 'start'
+  total: number
+}
+
+export interface ScanMatchEvent {
+  event: 'match'
+  data: ScanMatchedStock
+  current: number
+  total: number
+  matched_count: number
+}
+
+export interface ScanProgressEvent {
+  event: 'progress'
+  current: number
+  total: number
+  stock_id: string
+  stock_name: string
+  matched_count: number
+  quota_exceeded: boolean
+}
+
+export interface ScanDoneEvent {
+  event: 'done'
+  total: number
+  scanned: number
+  matched_count: number
+  quota_exceeded: boolean
+  warnings: string[]
+}
+
+export type ScanStreamEvent =
+  | ScanStartEvent
+  | ScanMatchEvent
+  | ScanProgressEvent
+  | ScanDoneEvent

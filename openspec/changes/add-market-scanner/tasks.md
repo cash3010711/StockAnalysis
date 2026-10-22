@@ -13,7 +13,7 @@
 
 ## 3. 前端選股掃描介面與雙分頁整合
 
-- [ ] 3.1 在 `frontend/src/types/api.ts` 與 `frontend/src/api/client.ts` 新增選股掃描型別定義及 `fetchScannerOptions`、`runMarketScan`、`streamMarketScan`（支援 `ReadableStream` 逐行解析與 `AbortSignal` 中止）函式
-- [ ] 3.2 建立 `frontend/src/components/MarketScanner.tsx`，實作股票池範圍選擇、產業過濾、快取／自動同步切換、基本面／籌碼面／5 大技術策略勾選、即時進度條與中止按鈕，以及支援多欄位排序的符合條件股票表格
-- [ ] 3.3 更新 `frontend/src/App.tsx` 新增頂部「個股深度分析／全市場選股掃描」雙分頁切換（保持 `MarketScanner` 掛載狀態以保留結果），支援從掃描列表點擊股票直接載入個股 K 線與深度分析
-- [ ] 3.4 新增 `frontend/src/components/MarketScanner.test.tsx` 整合測試，並執行 `npm test -- --run` 與 `npm run build` 驗證前端測試與 TypeScript 編譯全數通過
+- [x] 3.1 在 `frontend/src/types/api.ts` 與 `frontend/src/api/client.ts` 新增選股掃描型別定義及 `fetchScannerOptions`、`runMarketScan`、`streamMarketScan`（支援 `ReadableStream` 逐行解析與 `AbortSignal` 中止）函式
+- [x] 3.2 建立 `frontend/src/components/MarketScanner.tsx`，實作股票池範圍選擇、產業過濾、快取／自動同步切換、基本面／籌碼面／5 大技術策略勾選、即時進度條與中止按鈕，以及支援多欄位排序的符合條件股票表格
+- [x] 3.3 更新 `frontend/src/App.tsx` 新增頂部「個股深度分析／全市場選股掃描」雙分頁切換（保持 `MarketScanner` 掛載狀態以保留結果），支援從掃描列表點擊股票直接載入個股 K 線與深度分析
+- [x] 3.4 新增 `frontend/src/components/MarketScanner.test.tsx` 整合測試，並執行 `npm test -- --run` 與 `npm run build` 驗證前端測試與 TypeScript 編譯全數通過
