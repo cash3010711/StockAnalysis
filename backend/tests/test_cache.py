@@ -109,3 +109,51 @@ def test_fetch_log_tracking(repo):
 
     repo.update_fetch_log(stock_id, "daily_k", "2024-01-10")
     assert repo.get_fetch_log(stock_id, "daily_k") == "2024-01-10"
+
+
+def test_scanner_cache_repository_queries(repo):
+    """Verify get_stock_metadata, get_cached_stock_ids, get_supported_stocks, and get_industry_categories."""
+    df_info = pd.DataFrame([
+        {"stock_id": "2330", "stock_name": "台積電", "type": "twse", "industry_category": "半導體業", "is_supported": 1},
+        {"stock_id": "2317", "stock_name": "鴻海", "type": "twse", "industry_category": "其他電子業", "is_supported": 1},
+        {"stock_id": "6488", "stock_name": "環球晶", "type": "tpex", "industry_category": "半導體業", "is_supported": 1},
+        {"stock_id": "0050", "stock_name": "元大台灣50", "type": "twse", "industry_category": "ETF", "is_supported": 0},
+    ])
+    repo.upsert_stock_info(df_info)
+
+    # 1. get_stock_metadata
+    meta_2330 = repo.get_stock_metadata("2330")
+    assert meta_2330 is not None
+    assert meta_2330["stock_id"] == "2330"
+    assert meta_2330["stock_name"] == "台積電"
+    assert meta_2330["market"] == "上市"
+    assert meta_2330["type"] == "twse"
+    assert meta_2330["industry_category"] == "半導體業"
+    assert repo.get_stock_metadata("9999") is None
+
+    # 2. get_cached_stock_ids (only supported common stocks with daily_k)
+    df_k = pd.DataFrame([
+        {"date": "2024-01-02", "open": 100.0, "high": 105.0, "low": 99.0, "close": 102.0, "volume": 1000, "effective_date": "2024-01-02"}
+    ])
+    repo.upsert_daily_k("2330", df_k)
+    repo.upsert_daily_k("6488", df_k)
+    repo.upsert_daily_k("0050", df_k)  # unsupported ETF should be excluded
+    assert repo.get_cached_stock_ids() == ["2330", "6488"]
+
+    # 3. get_supported_stocks with industry and market filters
+    all_supported = repo.get_supported_stocks()
+    assert [s["stock_id"] for s in all_supported] == ["2317", "2330", "6488"]
+
+    semi_stocks = repo.get_supported_stocks(industry_category="半導體業")
+    assert [s["stock_id"] for s in semi_stocks] == ["2330", "6488"]
+
+    twse_semi = repo.get_supported_stocks(industry_category="半導體業", market_type="twse")
+    assert [s["stock_id"] for s in twse_semi] == ["2330"]
+
+    tpex_stocks = repo.get_supported_stocks(market_type="tpex")
+    assert [s["stock_id"] for s in tpex_stocks] == ["6488"]
+
+    # 4. get_industry_categories
+    categories = repo.get_industry_categories()
+    assert categories == ["其他電子業", "半導體業"]
+

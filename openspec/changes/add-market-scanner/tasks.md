@@ -2,8 +2,8 @@
 
 ## 1. 後端快取與股票池查詢擴充
 
-- [ ] 1.1 在 `backend/app/data/cache.py` 的 `CacheRepository` 新增 `get_stock_metadata`、`get_cached_stock_ids`、`get_supported_stocks` 與 `get_industry_categories` 方法，並執行 `uv run --project backend pytest backend/tests/test_cache.py` 確認既有快取測試通過
-- [ ] 1.2 在 `backend/app/analysis/scanner.py` 建立 `TAIWAN_50_STOCKS` 代表股清單、`ScanFilterConfig` 與 `resolve_scan_pool` 股票池解析邏輯（支援 `cached`、`tw50`、`industry`、`all`、`twse`、`tpex`），並以單元測試驗證各股票池與產業過濾結果正確
+- [x] 1.1 在 `backend/app/data/cache.py` 的 `CacheRepository` 新增 `get_stock_metadata`、`get_cached_stock_ids`、`get_supported_stocks` 與 `get_industry_categories` 方法，並執行 `uv run --project backend pytest backend/tests/test_cache.py` 確認既有快取測試通過
+- [x] 1.2 在 `backend/app/analysis/scanner.py` 建立 `TAIWAN_50_STOCKS` 代表股清單、`ScanFilterConfig` 與 `resolve_scan_pool` 股票池解析邏輯（支援 `cached`、`tw50`、`industry`、`all`、`twse`、`tpex`），並以單元測試驗證各股票池與產業過濾結果正確
 
 ## 2. 後端兩階段選股掃描引擎與串流 API
 

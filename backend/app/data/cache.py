@@ -497,6 +497,106 @@ class CacheRepository:
                 return str(row["stock_name"])
             return None
 
+    def get_stock_metadata(self, stock_id: str) -> Optional[Dict[str, str]]:
+        """Get stock metadata (stock_id, stock_name, market, type, industry_category) by stock_id."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT stock_id, stock_name, type, industry_category
+                FROM stock_info
+                WHERE stock_id = ?
+                LIMIT 1
+                """,
+                (stock_id,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            raw_type = str(row["type"] or "")
+            return {
+                "stock_id": str(row["stock_id"]),
+                "stock_name": str(row["stock_name"] or row["stock_id"]),
+                "market": format_market(raw_type),
+                "type": raw_type,
+                "industry_category": str(row["industry_category"] or ""),
+            }
+
+    def get_cached_stock_ids(self) -> List[str]:
+        """Return sorted list of distinct supported common stock_ids that have cached daily_k data."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT stock_id FROM daily_k ORDER BY stock_id ASC")
+            rows = cursor.fetchall()
+
+        result: List[str] = []
+        for row in rows:
+            sid = str(row["stock_id"]).strip()
+            if len(sid) == 4 and sid.isdigit() and not self.is_unsupported_stock(sid):
+                result.append(sid)
+        return result
+
+    def get_supported_stocks(
+        self,
+        industry_category: Optional[str] = None,
+        market_type: Optional[str] = None,
+    ) -> List[Dict[str, str]]:
+        """Return list of supported common stocks from stock_info, optionally filtered by industry and market."""
+        query = """
+            SELECT stock_id, stock_name, type, industry_category
+            FROM stock_info
+            WHERE is_supported = 1
+        """
+        params: List[Any] = []
+
+        if industry_category and industry_category.strip():
+            query += " AND industry_category = ?"
+            params.append(industry_category.strip())
+
+        if market_type and market_type.strip():
+            m = market_type.strip().lower()
+            if m == "上市":
+                m = "twse"
+            elif m == "上櫃":
+                m = "tpex"
+            query += " AND LOWER(type) = ?"
+            params.append(m)
+
+        query += " ORDER BY stock_id ASC"
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+
+        return [
+            {
+                "stock_id": str(r["stock_id"]),
+                "stock_name": str(r["stock_name"] or r["stock_id"]),
+                "market": format_market(str(r["type"] or "")),
+                "type": str(r["type"] or ""),
+                "industry_category": str(r["industry_category"] or ""),
+            }
+            for r in rows
+        ]
+
+    def get_industry_categories(self) -> List[str]:
+        """Return sorted list of distinct non-empty industry categories among supported common stocks."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT DISTINCT industry_category
+                FROM stock_info
+                WHERE is_supported = 1
+                  AND industry_category IS NOT NULL
+                  AND TRIM(industry_category) != ''
+                ORDER BY industry_category ASC
+                """
+            )
+            rows = cursor.fetchall()
+        return [str(r["industry_category"]) for r in rows]
+
     def search_stocks(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Search supported common stocks matching query in stock_id or stock_name.
 
