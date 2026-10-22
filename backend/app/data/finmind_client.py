@@ -142,8 +142,13 @@ class FinMindClient:
         try:
             records = self._request(dataset, params)
         except FinMindApiError as e:
-            # Fallback for free user accounts where TaiwanStockPriceAdj is restricted
-            if adjusted and "level is free" in str(e).lower():
+            # Fallback for free/registered user accounts where TaiwanStockPriceAdj is restricted
+            err_msg = str(e).lower()
+            if adjusted and (
+                "level is free" in err_msg
+                or "level is register" in err_msg
+                or "update your user level" in err_msg
+            ):
                 records = self._request("TaiwanStockPrice", params)
             else:
                 raise

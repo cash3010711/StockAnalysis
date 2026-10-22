@@ -89,10 +89,13 @@ def test_successful_get_daily_k_with_fallback():
         params = dict(request.url.params)
         dataset = params.get("dataset")
         if dataset == "TaiwanStockPriceAdj":
-            # Simulate free user getting 400 for Adj, triggering fallback to TaiwanStockPrice
+            # Simulate registered free user getting 400 for Adj, triggering fallback to TaiwanStockPrice
             return httpx.Response(
                 400,
-                json={"msg": "Your level is free. Please update your user level.", "status": 400},
+                json={
+                    "msg": "Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor",
+                    "status": 400,
+                },
             )
         elif dataset == "TaiwanStockPrice":
             return httpx.Response(200, json=fixture_data)
