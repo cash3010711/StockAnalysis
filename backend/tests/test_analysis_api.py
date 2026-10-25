@@ -435,6 +435,57 @@ def test_api_analysis_error_insufficient_history_too_few_days():
         err = resp.json()
         assert err["code"] == "INSUFFICIENT_HISTORY"
         assert "歷史資料不足" in err["message"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_api_analysis_ohlcv_indicator_warmup_and_values():
+    """Verify OHLCV indicator series expansion: early warmup items have None, from day 20 all indicators have values."""
+    repo = CacheRepository(db_path=":memory:")
+    service = _setup_service_with_data(repo, stock_id="2330", stock_name="台積電", n_days=50)
+
+    app.dependency_overrides[get_data_service] = lambda: service
+    try:
+        client = TestClient(app)
+        resp = client.get("/api/analysis/2330")
+        assert resp.status_code == 200
+        data = resp.json()
+        ohlcv = data["ohlcv"]
+        assert len(ohlcv) == 50
+
+        # Day 0 (first bar): all moving averages & bollinger bands must be None
+        first_bar = ohlcv[0]
+        assert first_bar["ma5"] is None
+        assert first_bar["ma10"] is None
+        assert first_bar["ma20"] is None
+        assert first_bar["bb_mid"] is None
+        assert first_bar["bb_upper"] is None
+        assert first_bar["bb_lower"] is None
+
+        # Day 4 (5th bar): ma5 should be present, ma10 and ma20 should still be None
+        day5_bar = ohlcv[4]
+        assert isinstance(day5_bar["ma5"], float)
+        assert day5_bar["ma10"] is None
+        assert day5_bar["ma20"] is None
+        assert day5_bar["bb_mid"] is None
+
+        # Day 9 (10th bar): ma5 and ma10 present, ma20 still None
+        day10_bar = ohlcv[9]
+        assert isinstance(day10_bar["ma5"], float)
+        assert isinstance(day10_bar["ma10"], float)
+        assert day10_bar["ma20"] is None
+
+        # Day 19 (20th bar) onwards: all indicators present
+        for bar in ohlcv[19:]:
+            assert isinstance(bar["ma5"], float)
+            assert isinstance(bar["ma10"], float)
+            assert isinstance(bar["ma20"], float)
+            assert isinstance(bar["bb_mid"], float)
+            assert isinstance(bar["bb_upper"], float)
+            assert isinstance(bar["bb_lower"], float)
+            assert bar["bb_upper"] >= bar["bb_mid"] >= bar["bb_lower"]
+            # 20MA and bb_mid are the same mathematical value
+            assert bar["ma20"] == bar["bb_mid"]
         assert "需至少 35 個交易日" in err["hint"]
     finally:
         app.dependency_overrides.clear()
@@ -482,5 +533,56 @@ def test_api_analysis_error_insufficient_history_empty_data():
         err = resp.json()
         assert err["code"] == "INSUFFICIENT_HISTORY"
         assert "歷史資料不足" in err["message"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_api_analysis_ohlcv_indicator_warmup_and_values():
+    """Verify OHLCV indicator series expansion: early warmup items have None, from day 20 all indicators have values."""
+    repo = CacheRepository(db_path=":memory:")
+    service = _setup_service_with_data(repo, stock_id="2330", stock_name="台積電", n_days=50)
+
+    app.dependency_overrides[get_data_service] = lambda: service
+    try:
+        client = TestClient(app)
+        resp = client.get("/api/analysis/2330")
+        assert resp.status_code == 200
+        data = resp.json()
+        ohlcv = data["ohlcv"]
+        assert len(ohlcv) == 50
+
+        # Day 0 (first bar): all moving averages & bollinger bands must be None
+        first_bar = ohlcv[0]
+        assert first_bar["ma5"] is None
+        assert first_bar["ma10"] is None
+        assert first_bar["ma20"] is None
+        assert first_bar["bb_mid"] is None
+        assert first_bar["bb_upper"] is None
+        assert first_bar["bb_lower"] is None
+
+        # Day 4 (5th bar): ma5 should be present, ma10 and ma20 should still be None
+        day5_bar = ohlcv[4]
+        assert isinstance(day5_bar["ma5"], float)
+        assert day5_bar["ma10"] is None
+        assert day5_bar["ma20"] is None
+        assert day5_bar["bb_mid"] is None
+
+        # Day 9 (10th bar): ma5 and ma10 present, ma20 still None
+        day10_bar = ohlcv[9]
+        assert isinstance(day10_bar["ma5"], float)
+        assert isinstance(day10_bar["ma10"], float)
+        assert day10_bar["ma20"] is None
+
+        # Day 19 (20th bar) onwards: all indicators present
+        for bar in ohlcv[19:]:
+            assert isinstance(bar["ma5"], float)
+            assert isinstance(bar["ma10"], float)
+            assert isinstance(bar["ma20"], float)
+            assert isinstance(bar["bb_mid"], float)
+            assert isinstance(bar["bb_upper"], float)
+            assert isinstance(bar["bb_lower"], float)
+            assert bar["bb_upper"] >= bar["bb_mid"] >= bar["bb_lower"]
+            # 20MA and bb_mid are the same mathematical value
+            assert bar["ma20"] == bar["bb_mid"]
     finally:
         app.dependency_overrides.clear()

@@ -79,6 +79,12 @@ export interface OHLCVItem {
   low: number
   close: number
   volume: number
+  ma5?: number | null
+  ma10?: number | null
+  ma20?: number | null
+  bb_upper?: number | null
+  bb_lower?: number | null
+  bb_mid?: number | null
 }
 
 export interface AnalysisResponse {

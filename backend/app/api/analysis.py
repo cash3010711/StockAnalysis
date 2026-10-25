@@ -6,6 +6,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from app.analysis.assembler import assemble_today_analysis
+from app.analysis.indicators import compute_all_indicators
 from app.api.stocks import get_data_service
 from app.backtest.runner import run_all_backtests
 from app.data.exceptions import (
@@ -87,6 +88,12 @@ class OHLCVItemModel(BaseModel):
     low: float
     close: float
     volume: int
+    ma5: Optional[float] = None
+    ma10: Optional[float] = None
+    ma20: Optional[float] = None
+    bb_upper: Optional[float] = None
+    bb_lower: Optional[float] = None
+    bb_mid: Optional[float] = None
 
 
 class AnalysisResponse(BaseModel):
@@ -182,6 +189,7 @@ def analyze_stock(
         })
 
     # 3. OHLCV data for charting
+    df_indicators = compute_all_indicators(daily_k)
     ohlcv = [
         {
             "date": str(row["date"]),
@@ -190,8 +198,14 @@ def analyze_stock(
             "low": float(row["low"]),
             "close": float(row["close"]),
             "volume": int(row["volume"]) if pd.notna(row["volume"]) else 0,
+            "ma5": round(float(row["ma5"]), 2) if pd.notna(row["ma5"]) else None,
+            "ma10": round(float(row["ma10"]), 2) if pd.notna(row["ma10"]) else None,
+            "ma20": round(float(row["ma20"]), 2) if pd.notna(row["ma20"]) else None,
+            "bb_upper": round(float(row["bb_upper"]), 2) if pd.notna(row["bb_upper"]) else None,
+            "bb_lower": round(float(row["bb_lower"]), 2) if pd.notna(row["bb_lower"]) else None,
+            "bb_mid": round(float(row["bb_mid"]), 2) if pd.notna(row["bb_mid"]) else None,
         }
-        for _, row in daily_k.iterrows()
+        for _, row in df_indicators.iterrows()
     ]
 
     stock_name = service.get_stock_name(sid)

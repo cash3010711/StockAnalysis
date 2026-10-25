@@ -5,6 +5,7 @@ import {
   createChart,
   createSeriesMarkers,
   HistogramSeries,
+  LineSeries,
   LineStyle,
 } from 'lightweight-charts'
 import type {
@@ -30,6 +31,11 @@ export const StockChart: React.FC<StockChartProps> = ({
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
+  const ma5SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
+  const ma10SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
+  const ma20SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
+  const bbUpperSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
+  const bbLowerSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null)
   const priceLinesRef = useRef<IPriceLine[]>([])
 
@@ -103,6 +109,56 @@ export const StockChart: React.FC<StockChartProps> = ({
     })
     volumeSeriesRef.current = volumeSeries
 
+    // MA5 series (琥珀黃實線)
+    const ma5Series = chart.addSeries(LineSeries, {
+      color: '#f59e0b',
+      lineWidth: 1,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    })
+    ma5SeriesRef.current = ma5Series
+
+    // MA10 series (紫色實線)
+    const ma10Series = chart.addSeries(LineSeries, {
+      color: '#a855f7',
+      lineWidth: 1,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    })
+    ma10SeriesRef.current = ma10Series
+
+    // MA20 / 布林中軌 series (藍色實線 2px)
+    const ma20Series = chart.addSeries(LineSeries, {
+      color: '#3b82f6',
+      lineWidth: 2,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    })
+    ma20SeriesRef.current = ma20Series
+
+    // 布林上軌 series (冷灰色細虛線 1px)
+    const bbUpperSeries = chart.addSeries(LineSeries, {
+      color: '#64748b',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    })
+    bbUpperSeriesRef.current = bbUpperSeries
+
+    // 布林下軌 series (冷灰色細虛線 1px)
+    const bbLowerSeries = chart.addSeries(LineSeries, {
+      color: '#64748b',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    })
+    bbLowerSeriesRef.current = bbLowerSeries
+
     // Resize handler
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
@@ -121,6 +177,11 @@ export const StockChart: React.FC<StockChartProps> = ({
         chartRef.current = null
         candleSeriesRef.current = null
         volumeSeriesRef.current = null
+        ma5SeriesRef.current = null
+        ma10SeriesRef.current = null
+        ma20SeriesRef.current = null
+        bbUpperSeriesRef.current = null
+        bbLowerSeriesRef.current = null
         markersPluginRef.current = null
         priceLinesRef.current = []
       }
@@ -152,6 +213,28 @@ export const StockChart: React.FC<StockChartProps> = ({
 
     candleSeriesRef.current.setData(candleData)
     volumeSeriesRef.current.setData(volumeData)
+
+    const ma5Data = sorted
+      .filter((d) => d.ma5 != null)
+      .map((d) => ({ time: d.date as Time, value: d.ma5! }))
+    const ma10Data = sorted
+      .filter((d) => d.ma10 != null)
+      .map((d) => ({ time: d.date as Time, value: d.ma10! }))
+    const ma20Data = sorted
+      .filter((d) => d.ma20 != null)
+      .map((d) => ({ time: d.date as Time, value: d.ma20! }))
+    const bbUpperData = sorted
+      .filter((d) => d.bb_upper != null)
+      .map((d) => ({ time: d.date as Time, value: d.bb_upper! }))
+    const bbLowerData = sorted
+      .filter((d) => d.bb_lower != null)
+      .map((d) => ({ time: d.date as Time, value: d.bb_lower! }))
+
+    ma5SeriesRef.current?.setData(ma5Data)
+    ma10SeriesRef.current?.setData(ma10Data)
+    ma20SeriesRef.current?.setData(ma20Data)
+    bbUpperSeriesRef.current?.setData(bbUpperData)
+    bbLowerSeriesRef.current?.setData(bbLowerData)
 
     if (chartRef.current) {
       chartRef.current.timeScale().fitContent()
