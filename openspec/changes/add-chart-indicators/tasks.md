@@ -12,9 +12,9 @@
 
 ## 3. 圖層開關控制與動態數值面板 (Legend)
 
-- [ ] 3.1 在 `StockChart.tsx` 圖表頂部新增開關控制列按鈕（`[✓] 5MA`、`[✓] 10MA`、`[✓] 20MA`、`[✓] 布林通道`），透過狀態管理動態調用 `applyOptions({ visible })` 切換各線條之顯隱；更新 `frontend/src/components/StockChart.test.tsx` 驗證開關切換邏輯。
-- [ ] 3.2 透過 `chart.subscribeCrosshairMove` 實作十字游標動態數值面板，游標懸停在特定日期時顯示當日 5MA、10MA、20MA、布林上下軌數值，移出時顯示最新收盤日數值；執行 `cd frontend; npm test -- --run; cd ..` 確認所有前端單元與整合測試通過。
+- [x] 3.1 在 `StockChart.tsx` 圖表頂部新增開關控制列按鈕（`[✓] 5MA`、`[✓] 10MA`、`[✓] 20MA`、`[✓] 布林通道`），透過狀態管理動態調用 `applyOptions({ visible })` 切換各線條之顯隱；更新 `frontend/src/components/StockChart.test.tsx` 驗證開關切換邏輯。
+- [x] 3.2 透過 `chart.subscribeCrosshairMove` 實作十字游標動態數值面板，游標懸停在特定日期時顯示當日 5MA、10MA、20MA、布林上下軌數值，移出時顯示最新收盤日數值；執行 `cd frontend; npm test -- --run; cd ..` 確認所有前端單元與整合測試通過。
 
 ## 4. 系統整合與端對端驗證
 
-- [ ] 4.1 執行後端 pytest 全套測試與前端 vitest 全套測試，確認「個股深度分析」與「全市場選股」雙分頁在載入個股時均線與布林通道皆可正常繪製、開關流暢且無回歸錯誤。
+- [x] 4.1 執行後端 pytest 全套測試與前端 vitest 全套測試，確認「個股深度分析」與「全市場選股」雙分頁在載入個股時均線與布林通道皆可正常繪製、開關流暢且無回歸錯誤。

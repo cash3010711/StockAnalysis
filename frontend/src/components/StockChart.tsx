@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   CandlestickSeries,
   ColorType,
@@ -23,6 +23,11 @@ interface StockChartProps {
   selectedStrategy?: StrategyItem | null
 }
 
+const formatValue = (val: number | null | undefined): string => {
+  if (val == null || Number.isNaN(val)) return '-'
+  return Number(val).toFixed(2)
+}
+
 export const StockChart: React.FC<StockChartProps> = ({
   ohlcv,
   selectedStrategy,
@@ -38,6 +43,19 @@ export const StockChart: React.FC<StockChartProps> = ({
   const bbLowerSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null)
   const priceLinesRef = useRef<IPriceLine[]>([])
+
+  // Indicator layer toggle states
+  const [visibleLayers, setVisibleLayers] = useState({
+    ma5: true,
+    ma10: true,
+    ma20: true,
+    bollinger: true,
+  })
+
+  // Crosshair dynamic hover indicator state
+  const [hoveredData, setHoveredData] = useState<OHLCVItem | null>(null)
+  const latestDataRef = useRef<OHLCVItem | null>(null)
+  const ohlcvMapRef = useRef<Map<string, OHLCVItem>>(new Map())
 
   // Initialize chart
   useEffect(() => {
@@ -159,6 +177,40 @@ export const StockChart: React.FC<StockChartProps> = ({
     })
     bbLowerSeriesRef.current = bbLowerSeries
 
+    // Subscribe crosshair move for dynamic legend
+    chart.subscribeCrosshairMove((param) => {
+      if (
+        !param ||
+        !param.time ||
+        param.point === undefined ||
+        param.point.x < 0 ||
+        param.point.y < 0
+      ) {
+        setHoveredData(latestDataRef.current)
+        return
+      }
+
+      const timeStr =
+        typeof param.time === 'string'
+          ? param.time
+          : typeof param.time === 'object' && param.time !== null
+            ? `${(param.time as { year: number }).year}-${String((param.time as { month: number }).month).padStart(2, '0')}-${String((param.time as { day: number }).day).padStart(2, '0')}`
+            : String(param.time)
+
+      const item = ohlcvMapRef.current.get(timeStr)
+      if (item) {
+        setHoveredData(item)
+      } else {
+        setHoveredData(latestDataRef.current)
+      }
+    })
+
+    const handleMouseLeave = () => {
+      setHoveredData(latestDataRef.current)
+    }
+
+    container.addEventListener('mouseleave', handleMouseLeave)
+
     // Resize handler
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
@@ -171,6 +223,7 @@ export const StockChart: React.FC<StockChartProps> = ({
     window.addEventListener('resize', handleResize)
 
     return () => {
+      container.removeEventListener('mouseleave', handleMouseLeave)
       window.removeEventListener('resize', handleResize)
       if (chartRef.current) {
         chartRef.current.remove()
@@ -188,14 +241,37 @@ export const StockChart: React.FC<StockChartProps> = ({
     }
   }, [])
 
+  // Apply visibility options when toggle states change
+  useEffect(() => {
+    ma5SeriesRef.current?.applyOptions({ visible: visibleLayers.ma5 })
+    ma10SeriesRef.current?.applyOptions({ visible: visibleLayers.ma10 })
+    ma20SeriesRef.current?.applyOptions({ visible: visibleLayers.ma20 })
+    bbUpperSeriesRef.current?.applyOptions({ visible: visibleLayers.bollinger })
+    bbLowerSeriesRef.current?.applyOptions({ visible: visibleLayers.bollinger })
+  }, [visibleLayers])
+
   // Update OHLCV data
   useEffect(() => {
-    if (!candleSeriesRef.current || !volumeSeriesRef.current || ohlcv.length === 0) {
+    if (ohlcv.length === 0) {
+      latestDataRef.current = null
+      ohlcvMapRef.current = new Map()
+      setHoveredData(null)
       return
     }
 
     // Sort ascending by date
     const sorted = [...ohlcv].sort((a, b) => a.date.localeCompare(b.date))
+    const map = new Map<string, OHLCVItem>()
+    sorted.forEach((item) => map.set(item.date, item))
+    ohlcvMapRef.current = map
+
+    const latest = sorted[sorted.length - 1]
+    latestDataRef.current = latest
+    setHoveredData(latest)
+
+    if (!candleSeriesRef.current || !volumeSeriesRef.current) {
+      return
+    }
 
     const candleData = sorted.map((d) => ({
       time: d.date,
@@ -421,6 +497,174 @@ export const StockChart: React.FC<StockChartProps> = ({
               }}
             />
             停損出場
+          </span>
+        </div>
+      </div>
+
+      {/* Indicator Controls & Dynamic Legend Bar */}
+      <div
+        data-testid="chart-toolbar"
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '8px 12px',
+          marginBottom: '12px',
+          background: '#f8fafc',
+          borderRadius: '6px',
+          border: '1px solid #e2e8f0',
+          fontSize: '12px',
+        }}
+      >
+        {/* Toggle Buttons */}
+        <div
+          data-testid="layer-controls"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
+        >
+          <span style={{ fontWeight: 600, color: '#475569', marginRight: '4px' }}>圖層開關:</span>
+          <button
+            type="button"
+            data-testid="toggle-ma5"
+            onClick={() => setVisibleLayers((prev) => ({ ...prev, ma5: !prev.ma5 }))}
+            style={{
+              cursor: 'pointer',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 500,
+              border: visibleLayers.ma5 ? '1px solid #f59e0b' : '1px solid #cbd5e1',
+              background: visibleLayers.ma5 ? '#fef3c7' : '#ffffff',
+              color: visibleLayers.ma5 ? '#b45309' : '#94a3b8',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {visibleLayers.ma5 ? '[✓] 5MA' : '[ ] 5MA'}
+          </button>
+          <button
+            type="button"
+            data-testid="toggle-ma10"
+            onClick={() => setVisibleLayers((prev) => ({ ...prev, ma10: !prev.ma10 }))}
+            style={{
+              cursor: 'pointer',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 500,
+              border: visibleLayers.ma10 ? '1px solid #a855f7' : '1px solid #cbd5e1',
+              background: visibleLayers.ma10 ? '#f3e8ff' : '#ffffff',
+              color: visibleLayers.ma10 ? '#7e22ce' : '#94a3b8',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {visibleLayers.ma10 ? '[✓] 10MA' : '[ ] 10MA'}
+          </button>
+          <button
+            type="button"
+            data-testid="toggle-ma20"
+            onClick={() => setVisibleLayers((prev) => ({ ...prev, ma20: !prev.ma20 }))}
+            style={{
+              cursor: 'pointer',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 500,
+              border: visibleLayers.ma20 ? '1px solid #3b82f6' : '1px solid #cbd5e1',
+              background: visibleLayers.ma20 ? '#dbeafe' : '#ffffff',
+              color: visibleLayers.ma20 ? '#1d4ed8' : '#94a3b8',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {visibleLayers.ma20 ? '[✓] 20MA' : '[ ] 20MA'}
+          </button>
+          <button
+            type="button"
+            data-testid="toggle-bollinger"
+            onClick={() => setVisibleLayers((prev) => ({ ...prev, bollinger: !prev.bollinger }))}
+            style={{
+              cursor: 'pointer',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 500,
+              border: visibleLayers.bollinger ? '1px solid #64748b' : '1px solid #cbd5e1',
+              background: visibleLayers.bollinger ? '#f1f5f9' : '#ffffff',
+              color: visibleLayers.bollinger ? '#334155' : '#94a3b8',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {visibleLayers.bollinger ? '[✓] 布林通道' : '[ ] 布林通道'}
+          </button>
+        </div>
+
+        {/* Dynamic Legend */}
+        <div
+          data-testid="chart-legend"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            flexWrap: 'wrap',
+            fontSize: '12px',
+            color: '#334155',
+            fontFamily: 'monospace',
+          }}
+        >
+          {hoveredData?.date && (
+            <span data-testid="legend-date" style={{ color: '#64748b', fontWeight: 600 }}>
+              {hoveredData.date}
+            </span>
+          )}
+          <span
+            data-testid="legend-ma5"
+            style={{
+              color: '#b45309',
+              opacity: visibleLayers.ma5 ? 1 : 0.4,
+              fontWeight: 500,
+            }}
+          >
+            5MA: {formatValue(hoveredData?.ma5)}
+          </span>
+          <span
+            data-testid="legend-ma10"
+            style={{
+              color: '#7e22ce',
+              opacity: visibleLayers.ma10 ? 1 : 0.4,
+              fontWeight: 500,
+            }}
+          >
+            10MA: {formatValue(hoveredData?.ma10)}
+          </span>
+          <span
+            data-testid="legend-ma20"
+            style={{
+              color: '#1d4ed8',
+              opacity: visibleLayers.ma20 ? 1 : 0.4,
+              fontWeight: 500,
+            }}
+          >
+            20MA / 布林中軌: {formatValue(hoveredData?.ma20 ?? hoveredData?.bb_mid)}
+          </span>
+          <span
+            data-testid="legend-bb-upper"
+            style={{
+              color: '#475569',
+              opacity: visibleLayers.bollinger ? 1 : 0.4,
+              fontWeight: 500,
+            }}
+          >
+            布林上軌: {formatValue(hoveredData?.bb_upper)}
+          </span>
+          <span
+            data-testid="legend-bb-lower"
+            style={{
+              color: '#475569',
+              opacity: visibleLayers.bollinger ? 1 : 0.4,
+              fontWeight: 500,
+            }}
+          >
+            布林下軌: {formatValue(hoveredData?.bb_lower)}
           </span>
         </div>
       </div>

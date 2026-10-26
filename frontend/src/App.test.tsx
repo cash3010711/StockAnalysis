@@ -105,6 +105,12 @@ describe('App Component Integration', () => {
         low: 965,
         close: 980,
         volume: 25000,
+        ma5: 975.0,
+        ma10: 960.0,
+        ma20: 940.0,
+        bb_upper: 980.0,
+        bb_lower: 900.0,
+        bb_mid: 940.0,
       },
       {
         date: '2026-10-21',
@@ -113,6 +119,12 @@ describe('App Component Integration', () => {
         low: 975,
         close: 985,
         volume: 28000,
+        ma5: 978.5,
+        ma10: 965.2,
+        ma20: 950.0,
+        bb_upper: 995.0,
+        bb_lower: 905.0,
+        bb_mid: 950.0,
       },
     ],
   }
@@ -208,6 +220,18 @@ describe('App Component Integration', () => {
     const breakoutRow = screen.getByTestId('strategy-row-帶量突破 20 日新高')
     fireEvent.click(breakoutRow)
     expect(screen.getByText('(當前策略：帶量突破 20 日新高)')).toBeInTheDocument()
+
+    // Verify indicator toolbar & legend in full app integration
+    expect(screen.getByTestId('layer-controls')).toBeInTheDocument()
+    expect(screen.getByTestId('chart-legend')).toBeInTheDocument()
+    expect(screen.getByTestId('toggle-bollinger')).toHaveTextContent('[✓] 布林通道')
+    expect(screen.getByTestId('legend-ma5')).toHaveTextContent('5MA: 978.50')
+    expect(screen.getByTestId('legend-ma10')).toHaveTextContent('10MA: 965.20')
+    expect(screen.getByTestId('legend-ma20')).toHaveTextContent('20MA / 布林中軌: 950.00')
+
+    // Toggle bollinger off
+    fireEvent.click(screen.getByTestId('toggle-bollinger'))
+    expect(screen.getByTestId('toggle-bollinger')).toHaveTextContent('[ ] 布林通道')
   })
 
   it('switches between single stock tab and market scanner tab with keep-alive state', async () => {
