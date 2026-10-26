@@ -149,6 +149,8 @@ export interface ScanRequest {
   require_chips?: boolean
   strategies?: string[]
   limit?: number | null
+  two_stage?: boolean
+  scan_date?: string | null
 }
 
 export interface StrategyStatItem {
@@ -173,6 +175,7 @@ export interface ScanMatchedStock {
   stop_loss?: number | null
   take_profit?: number | null
   max_holding_days?: number | null
+  risk_reward_ratio?: number | null
   fundamental_passed: boolean
   revenue_yoy?: number | null
   eps_4q_sum?: number | null

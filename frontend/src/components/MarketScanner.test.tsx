@@ -523,4 +523,125 @@ describe('MarketScanner Component', () => {
       expect(screen.getByTestId('stock-row-2330')).toBeInTheDocument()
     })
   })
+
+  it('renders nightly action plan card with items and handles stock selection', async () => {
+    const onSelectStock = vi.fn()
+    const mockNightlyPlan = {
+      found: true,
+      plan_id: 'plan_20261026_183000',
+      scan_date: '2026-10-26',
+      created_at: '2026-10-26T18:30:00Z',
+      status: 'completed',
+      total_candidates: 45,
+      selected_count: 1,
+      items: [
+        {
+          item_id: 1,
+          plan_id: 'plan_20261026_183000',
+          stock_id: '2330',
+          stock_name: '台積電',
+          market: '上市',
+          strategy: '均線拉回 20MA',
+          win_rate: 0.725,
+          trade_count: 15,
+          entry_price: 1000.0,
+          stop_loss: 950.0,
+          take_profit: 1080.0,
+          holding_days: 20,
+          risk_reward_ratio: 1.6,
+          close_price: 1000.0,
+          volume: 25000000,
+        },
+      ],
+    }
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/api/scanner/options')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockOptions,
+        } as Response
+      }
+      if (urlStr.includes('/api/scanner/nightly-plan')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockNightlyPlan,
+        } as Response
+      }
+      return { ok: false, status: 404 } as Response
+    })
+
+    render(<MarketScanner onSelectStock={onSelectStock} />)
+
+    // Verify Nightly Plan Card appears
+    expect(screen.getByTestId('nightly-plan-card')).toBeInTheDocument()
+    expect(screen.getByText('🌙 隔日交易備戰清單')).toBeInTheDocument()
+
+    // Verify loaded plan item details
+    await waitFor(() => {
+      expect(screen.getByTestId('nightly-plan-table')).toBeInTheDocument()
+      expect(screen.getByText(/2330 台積電/)).toBeInTheDocument()
+      expect(screen.getByText('72.5%')).toBeInTheDocument()
+      expect(screen.getAllByText('1000.00').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getByText('950.00')).toBeInTheDocument()
+      expect(screen.getByText('1080.00')).toBeInTheDocument()
+      expect(screen.getByText('1.6:1')).toBeInTheDocument()
+    })
+
+    // Click "查看 K 線" button
+    const kLineBtn = screen.getByText('查看 K 線')
+    fireEvent.click(kLineBtn)
+    expect(onSelectStock).toHaveBeenCalledWith('2330')
+  })
+
+  it('triggers manual nightly plan scan on button click', async () => {
+    let triggered = false
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/api/scanner/options')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockOptions,
+        } as Response
+      }
+      if (urlStr.includes('/api/scanner/nightly-plan/trigger')) {
+        triggered = true
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ status: 'completed', plan_id: 'p_new', selected_count: 0 }),
+        } as Response
+      }
+      if (urlStr.includes('/api/scanner/nightly-plan')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            found: triggered,
+            items: [],
+            scan_date: '2026-10-26',
+          }),
+        } as Response
+      }
+      return { ok: false, status: 404 } as Response
+    })
+
+    render(<MarketScanner onSelectStock={vi.fn()} />)
+
+    const triggerBtn = screen.getByTestId('trigger-nightly-plan-btn')
+    expect(triggerBtn).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(triggerBtn)
+    })
+
+    expect(triggered).toBe(true)
+    await waitFor(() => {
+      expect(screen.getByText(/隔日作戰清單已重新計算並完成更新/)).toBeInTheDocument()
+    })
+  })
 })

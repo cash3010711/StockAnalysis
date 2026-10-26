@@ -1,5 +1,6 @@
 """Market scanner pool resolution and stock screening utilities."""
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 import pandas as pd
 
@@ -12,6 +13,7 @@ from app.backtest.runner import run_all_backtests
 from app.data.exceptions import FinMindError, FinMindQuotaExceededError
 from app.data.service import DataService
 from app.data.stock_filter import format_market
+from app.data.twse_client import DailyQuote, TWSEClient
 
 TAIWAN_50_STOCKS: List[Dict[str, str]] = [
     {"stock_id": "1101", "stock_name": "台泥", "market": "上市", "type": "twse", "industry_category": "水泥工業"},
@@ -80,6 +82,11 @@ class ScanFilterConfig:
     require_chips: bool = True
     strategies: List[str] = field(default_factory=lambda: list(params.ALL_STRATEGIES))
     limit: Optional[int] = None
+    two_stage: bool = False  # Enable two-stage all-market fast screening
+    scan_date: Optional[str] = None  # Specific date YYYY-MM-DD
+    min_volume_lots: float = 1000.0  # Stage 1 volume threshold in lots (張)
+    min_price: float = 10.0  # Stage 1 price threshold
+    top_candidates: int = 50  # Top candidates to advance to stage 2
 
     def __post_init__(self):
         if not self.strategies:
@@ -111,7 +118,11 @@ def _enrich_stock_metadata(service: DataService, stock_id: str) -> Dict[str, str
     }
 
 
-def resolve_scan_pool(service: DataService, config: ScanFilterConfig) -> List[Dict[str, str]]:
+def resolve_scan_pool(
+    service: DataService,
+    config: ScanFilterConfig,
+    twse_client: Optional[TWSEClient] = None,
+) -> List[Dict[str, str]]:
     """Resolve the target stock pool according to config.pool and config.industry_category.
 
     Supported pools:
@@ -122,6 +133,35 @@ def resolve_scan_pool(service: DataService, config: ScanFilterConfig) -> List[Di
     - 'twse': Supported TWSE (上市) common stocks
     - 'tpex': Supported TPEx (上櫃) common stocks
     """
+    # Two-Stage Pipeline fast screening
+    if config.two_stage:
+        client = twse_client or TWSEClient()
+        target_date = config.scan_date or datetime.now().strftime("%Y-%m-%d")
+        quotes = client.fetch_all_quotes(target_date)
+        candidates = client.filter_candidates(
+            quotes,
+            min_volume_lots=config.min_volume_lots,
+            min_price=config.min_price,
+            top_n=config.top_candidates,
+        )
+        if candidates:
+            stocks = [
+                {
+                    "stock_id": q.stock_id,
+                    "stock_name": q.stock_name,
+                    "market": "上市" if q.market == "TWSE" else "上櫃",
+                    "type": "twse" if q.market == "TWSE" else "tpex",
+                    "industry_category": "",
+                }
+                for q in candidates
+            ]
+            if config.industry_category:
+                ind_filter = config.industry_category.strip()
+                stocks = [s for s in stocks if s.get("industry_category") == ind_filter]
+            if config.limit is not None and config.limit > 0:
+                stocks = stocks[: config.limit]
+            return stocks
+
     pool = (config.pool or "cached").strip().lower()
     ind_filter = config.industry_category.strip() if config.industry_category else None
 
@@ -271,6 +311,9 @@ def scan_single_stock(
     # Compute entry / exit levels
     entry_price = round_to_tick(close)
     stop_loss, take_profit, max_holding_days = calculate_exit_levels(close, atr14)
+    risk = max(0.0, entry_price - stop_loss)
+    reward = max(0.0, take_profit - entry_price)
+    risk_reward_ratio = round(reward / risk, 2) if risk > 0 else 0.0
 
     # Run historical backtests ONLY for triggered strategies
     backtest_summary = run_all_backtests(
@@ -341,6 +384,7 @@ def scan_single_stock(
         "stop_loss": stop_loss,
         "take_profit": take_profit,
         "max_holding_days": max_holding_days,
+        "risk_reward_ratio": risk_reward_ratio,
         "fundamental_passed": today_analysis.fundamental.passed,
         "revenue_yoy": today_analysis.fundamental.revenue_yoy,
         "eps_4q_sum": today_analysis.fundamental.eps_4q_sum,
@@ -362,9 +406,10 @@ def scan_single_stock(
 def iter_scan_events(
     service: DataService,
     config: ScanFilterConfig,
+    twse_client: Optional[TWSEClient] = None,
 ) -> Generator[Dict[str, Any], None, None]:
     """Iterate through the scan pool, yielding start, match, progress, and done events."""
-    stocks = resolve_scan_pool(service, config)
+    stocks = resolve_scan_pool(service, config, twse_client=twse_client)
     total = len(stocks)
 
     yield {
@@ -439,7 +484,11 @@ def iter_scan_events(
     }
 
 
-def run_scan(service: DataService, config: ScanFilterConfig) -> Dict[str, Any]:
+def run_scan(
+    service: DataService,
+    config: ScanFilterConfig,
+    twse_client: Optional[TWSEClient] = None,
+) -> Dict[str, Any]:
     """Run full market scan synchronously and return collected results."""
     matched_results: List[Dict[str, Any]] = []
     quota_exceeded = False
@@ -447,7 +496,7 @@ def run_scan(service: DataService, config: ScanFilterConfig) -> Dict[str, Any]:
     total = 0
     scanned = 0
 
-    for event in iter_scan_events(service, config):
+    for event in iter_scan_events(service, config, twse_client=twse_client):
         ev = event.get("event")
         if ev == "start":
             total = event.get("total", 0)
@@ -474,3 +523,35 @@ def run_scan(service: DataService, config: ScanFilterConfig) -> Dict[str, Any]:
         "warnings": warnings,
         "results": matched_results,
     }
+
+
+def run_two_stage_scan(
+    service: DataService,
+    twse_client: Optional[TWSEClient] = None,
+    scan_date: Optional[str] = None,
+    min_volume_lots: float = 1000.0,
+    min_price: float = 10.0,
+    top_candidates: int = 50,
+    strategies: Optional[List[str]] = None,
+    require_fundamental: bool = True,
+    require_chips: bool = True,
+) -> Dict[str, Any]:
+    """Execute the full two-stage market scan workflow:
+
+    1. Broad screening using TWSE/TPEx daily quote summaries.
+    2. Deep analysis with FinMind incremental sync and 3-layer verification for candidates.
+    Returns scan results with calculated exit levels and backtest win rates.
+    """
+    config = ScanFilterConfig(
+        pool="all",
+        two_stage=True,
+        scan_date=scan_date,
+        sync_latest=True,
+        require_fundamental=require_fundamental,
+        require_chips=require_chips,
+        strategies=strategies if strategies else list(params.ALL_STRATEGIES),
+        min_volume_lots=min_volume_lots,
+        min_price=min_price,
+        top_candidates=top_candidates,
+    )
+    return run_scan(service, config, twse_client=twse_client)

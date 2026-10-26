@@ -157,6 +157,44 @@ class CacheRepository:
             )
             """)
 
+            # 8. Nightly Plans
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS nightly_plans (
+                plan_id TEXT PRIMARY KEY,
+                scan_date TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'completed',
+                total_candidates INTEGER DEFAULT 0,
+                selected_count INTEGER DEFAULT 0,
+                notes TEXT
+            )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_nightly_plans_scan_date ON nightly_plans(scan_date)")
+
+            # 9. Nightly Plan Items
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS nightly_plan_items (
+                item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plan_id TEXT NOT NULL,
+                stock_id TEXT NOT NULL,
+                stock_name TEXT NOT NULL,
+                market TEXT NOT NULL,
+                strategy TEXT NOT NULL,
+                win_rate REAL DEFAULT 0.0,
+                trade_count INTEGER DEFAULT 0,
+                entry_price REAL NOT NULL,
+                stop_loss REAL NOT NULL,
+                take_profit REAL NOT NULL,
+                holding_days INTEGER DEFAULT 5,
+                risk_reward_ratio REAL DEFAULT 0.0,
+                close_price REAL NOT NULL,
+                volume REAL DEFAULT 0,
+                reason TEXT,
+                FOREIGN KEY(plan_id) REFERENCES nightly_plans(plan_id)
+            )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_nightly_plan_items_plan_id ON nightly_plan_items(plan_id)")
+
             conn.commit()
 
     # --- Fetch Log Operations ---
@@ -771,3 +809,125 @@ class CacheRepository:
             "monthly_revenue": self.get_monthly_revenue(stock_id, as_of_date=date),
             "quarterly_financials": self.get_quarterly_financials(stock_id, as_of_date=date),
         }
+
+    # --- Nightly Plan Operations ---
+
+    def save_nightly_plan(
+        self,
+        scan_date: str,
+        items: List[Dict[str, Any]],
+        plan_id: Optional[str] = None,
+        status: str = "completed",
+        total_candidates: int = 0,
+        notes: Optional[str] = None,
+    ) -> str:
+        """Save a nightly plan and its items atomically."""
+        if not plan_id:
+            now_compact = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            plan_id = f"plan_{now_compact}"
+
+        created_at = datetime.now(timezone.utc).isoformat()
+        selected_count = len(items)
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO nightly_plans
+                (plan_id, scan_date, created_at, status, total_candidates, selected_count, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (plan_id, scan_date, created_at, status, total_candidates, selected_count, notes),
+            )
+            cursor.execute("DELETE FROM nightly_plan_items WHERE plan_id = ?", (plan_id,))
+
+            for it in items:
+                cursor.execute(
+                    """
+                    INSERT INTO nightly_plan_items
+                    (plan_id, stock_id, stock_name, market, strategy, win_rate,
+                     trade_count, entry_price, stop_loss, take_profit, holding_days,
+                     risk_reward_ratio, close_price, volume, reason)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        plan_id,
+                        str(it.get("stock_id", "")),
+                        str(it.get("stock_name", "")),
+                        str(it.get("market", "")),
+                        str(it.get("strategy", "")),
+                        float(it.get("win_rate", 0.0)),
+                        int(it.get("trade_count", 0)),
+                        float(it.get("entry_price", 0.0)),
+                        float(it.get("stop_loss", 0.0)),
+                        float(it.get("take_profit", 0.0)),
+                        int(it.get("holding_days", 5)),
+                        float(it.get("risk_reward_ratio", 0.0)),
+                        float(it.get("close_price", 0.0)),
+                        float(it.get("volume", 0.0)),
+                        str(it.get("reason", "")),
+                    ),
+                )
+            conn.commit()
+        return plan_id
+
+    def get_nightly_plan_by_id(self, plan_id: str) -> Optional[Dict[str, Any]]:
+        """Get a nightly plan with its items by plan_id."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM nightly_plans WHERE plan_id = ?", (plan_id,))
+            plan_row = cursor.fetchone()
+            if not plan_row:
+                return None
+            plan = dict(plan_row)
+
+            cursor.execute(
+                "SELECT * FROM nightly_plan_items WHERE plan_id = ? ORDER BY win_rate DESC, item_id ASC",
+                (plan_id,),
+            )
+            plan["items"] = [dict(row) for row in cursor.fetchall()]
+            return plan
+
+    def get_latest_nightly_plan(self) -> Optional[Dict[str, Any]]:
+        """Get the most recent nightly plan with its items."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT plan_id FROM nightly_plans ORDER BY scan_date DESC, created_at DESC LIMIT 1"
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return self.get_nightly_plan_by_id(row["plan_id"])
+
+    def get_nightly_plan_by_date(self, scan_date: str) -> Optional[Dict[str, Any]]:
+        """Get the latest nightly plan for a specific scan date."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT plan_id FROM nightly_plans WHERE scan_date = ? ORDER BY created_at DESC LIMIT 1",
+                (scan_date,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return self.get_nightly_plan_by_id(row["plan_id"])
+
+    def list_nightly_plans(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """List past nightly plans without items."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM nightly_plans ORDER BY scan_date DESC, created_at DESC LIMIT ?",
+                (limit,),
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def delete_nightly_plan(self, plan_id: str) -> bool:
+        """Delete a plan and its items."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM nightly_plan_items WHERE plan_id = ?", (plan_id,))
+            cursor.execute("DELETE FROM nightly_plans WHERE plan_id = ?", (plan_id,))
+            conn.commit()
+            return cursor.rowcount > 0

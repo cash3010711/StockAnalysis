@@ -1,7 +1,7 @@
 """Market scanner API endpoints: options, batch run, and NDJSON streaming."""
 import json
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -13,6 +13,7 @@ from app.analysis.scanner import (
     run_scan,
 )
 from app.api.stocks import get_data_service
+from app.data.scheduler import execute_nightly_scan, get_scheduler_status
 from app.data.service import DataService
 
 
@@ -48,6 +49,8 @@ class ScanRequestModel(BaseModel):
     require_chips: bool = Field(default=True, description="是否要求籌碼面合格")
     strategies: List[str] = Field(default_factory=list, description="欲篩選之技術策略清單（為空代表全選）")
     limit: Optional[int] = Field(default=None, description="限制掃描檔數上限")
+    two_stage: bool = Field(default=False, description="是否啟用兩階段全市場快篩（以證交所總表初篩，再以 FinMind 深度同步）")
+    scan_date: Optional[str] = Field(default=None, description="指定掃描日期 YYYY-MM-DD")
 
 
 class StrategyStatItemModel(BaseModel):
@@ -72,6 +75,7 @@ class ScanMatchedStockModel(BaseModel):
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
     max_holding_days: Optional[int] = None
+    risk_reward_ratio: Optional[float] = None
     fundamental_passed: bool
     revenue_yoy: Optional[float] = None
     eps_4q_sum: Optional[float] = None
@@ -100,11 +104,13 @@ def _build_config(req: ScanRequestModel) -> ScanFilterConfig:
     return ScanFilterConfig(
         pool=req.pool,
         industry_category=req.industry_category,
-        sync_latest=req.sync_latest,
+        sync_latest=req.sync_latest or req.two_stage,
         require_fundamental=req.require_fundamental,
         require_chips=req.require_chips,
         strategies=req.strategies if req.strategies else list(params.ALL_STRATEGIES),
         limit=req.limit,
+        two_stage=req.two_stage,
+        scan_date=req.scan_date,
     )
 
 
@@ -169,3 +175,59 @@ def stream_market_scan(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+class TriggerNightlyScanRequest(BaseModel):
+    scan_date: Optional[str] = None
+
+
+@router.get("/nightly-plan")
+def get_nightly_plan(
+    date: Optional[str] = Query(None, description="指定掃描日期 (YYYY-MM-DD)"),
+    service: DataService = Depends(get_data_service),
+):
+    """Retrieve the latest or date-specific nightly action plan and its items."""
+    if date:
+        plan = service.repo.get_nightly_plan_by_date(date)
+    else:
+        plan = service.repo.get_latest_nightly_plan()
+
+    sched_status = get_scheduler_status()
+
+    if not plan:
+        return {
+            "found": False,
+            "plan_id": None,
+            "scan_date": date or "",
+            "created_at": None,
+            "status": "not_found",
+            "total_candidates": 0,
+            "selected_count": 0,
+            "notes": None,
+            "items": [],
+            "scheduler_status": sched_status,
+        }
+
+    return {
+        "found": True,
+        "plan_id": plan["plan_id"],
+        "scan_date": plan["scan_date"],
+        "created_at": plan["created_at"],
+        "status": plan.get("status", "completed"),
+        "total_candidates": plan.get("total_candidates", 0),
+        "selected_count": plan.get("selected_count", len(plan.get("items", []))),
+        "notes": plan.get("notes"),
+        "items": plan.get("items", []),
+        "scheduler_status": sched_status,
+    }
+
+
+@router.post("/nightly-plan/trigger")
+def trigger_nightly_plan(
+    request: Optional[TriggerNightlyScanRequest] = None,
+    service: DataService = Depends(get_data_service),
+):
+    """Manually trigger the nightly market scan and return the generated plan."""
+    target_date = request.scan_date if request else None
+    result = execute_nightly_scan(service=service, scan_date=target_date, manual=True)
+    return result

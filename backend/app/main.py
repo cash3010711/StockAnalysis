@@ -1,4 +1,5 @@
 """FastAPI application entrypoint."""
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -8,8 +9,22 @@ from app.api.scanner import router as scanner_router
 from app.api.stocks import router as stocks_router
 from app.config import get_finmind_token
 from app.data.exceptions import FinMindError
+from app.data.scheduler import start_scheduler, stop_scheduler
 
-app = FastAPI(title="Taiwan Stock Analyzer API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start nightly scheduler
+    try:
+        start_scheduler()
+    except Exception:
+        pass
+    yield
+    # Shutdown: Stop nightly scheduler
+    stop_scheduler()
+
+
+app = FastAPI(title="Taiwan Stock Analyzer API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

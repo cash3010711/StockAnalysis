@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchScannerOptions, streamMarketScan } from '../api/client'
+import { fetchNightlyPlan, triggerNightlyPlan } from '../api/nightlyPlan'
+import type { NightlyPlanResponse } from '../api/nightlyPlan'
 import type {
   ScanMatchedStock,
   ScanOptionPool,
@@ -47,9 +49,16 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
   const [selectedPool, setSelectedPool] = useState<string>('cached')
   const [selectedIndustry, setSelectedIndustry] = useState<string>('')
   const [syncLatest, setSyncLatest] = useState<boolean>(false)
+  const [twoStage, setTwoStage] = useState<boolean>(false)
   const [requireFundamental, setRequireFundamental] = useState<boolean>(true)
   const [requireChips, setRequireChips] = useState<boolean>(true)
   const [selectedStrategies, setSelectedStrategies] = useState<string[]>(DEFAULT_STRATEGIES)
+
+  // Nightly Action Plan state
+  const [nightlyPlan, setNightlyPlan] = useState<NightlyPlanResponse | null>(null)
+  const [loadingPlan, setLoadingPlan] = useState<boolean>(false)
+  const [triggeringPlan, setTriggeringPlan] = useState<boolean>(false)
+  const [planMessage, setPlanMessage] = useState<string | null>(null)
 
   // Execution & Progress state
   const [scanning, setScanning] = useState<boolean>(false)
@@ -101,6 +110,50 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
     }
   }, [])
 
+  // Load nightly action plan on mount
+  useEffect(() => {
+    let ignore = false
+    setLoadingPlan(true)
+    fetchNightlyPlan()
+      .then((data) => {
+        if (!ignore) {
+          setNightlyPlan(data)
+        }
+      })
+      .catch(() => {
+        // Fallback silently
+      })
+      .finally(() => {
+        if (!ignore) setLoadingPlan(false)
+      })
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const handleTriggerPlan = async () => {
+    if (triggeringPlan || scanning) return
+    try {
+      setTriggeringPlan(true)
+      setPlanMessage(null)
+      const res = await triggerNightlyPlan()
+      if (res.status === 'completed') {
+        const updated = await fetchNightlyPlan()
+        setNightlyPlan(updated)
+        setPlanMessage('✓ 隔日作戰清單已重新計算並完成更新！')
+      } else if (res.status === 'skipped') {
+        setPlanMessage(`⚠️ 排程跳過：${res.reason || '非交易日'}`)
+      } else {
+        setPlanMessage(`⚠️ 排程異常：${res.error || '未知錯誤'}`)
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '連線或運算異常'
+      setPlanMessage(`❌ 執行失敗：${msg}`)
+    } finally {
+      setTriggeringPlan(false)
+    }
+  }
+
   // Clean up abort on unmount
   useEffect(() => {
     return () => {
@@ -148,6 +201,7 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
           pool: selectedPool,
           industry_category: selectedIndustry || null,
           sync_latest: syncLatest,
+          two_stage: twoStage,
           require_fundamental: requireFundamental,
           require_chips: requireChips,
           strategies: selectedStrategies,
@@ -254,6 +308,257 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
 
   return (
     <div data-testid="market-scanner" style={{ marginTop: '8px' }}>
+      {/* Nightly Action Plan Card */}
+      <div
+        data-testid="nightly-plan-card"
+        style={{
+          background: '#ffffff',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          padding: '20px 24px',
+          marginBottom: '20px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+            marginBottom: '16px',
+            borderBottom: '1px solid #f1f5f9',
+            paddingBottom: '12px',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>
+                🌙 隔日交易備戰清單
+              </h2>
+              {nightlyPlan?.scan_date && (
+                <span
+                  data-testid="nightly-plan-date-badge"
+                  style={{
+                    fontSize: '12px',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    background: '#e0f2fe',
+                    color: '#0369a1',
+                    fontWeight: 600,
+                  }}
+                >
+                  掃描基準日：{nightlyPlan.scan_date}
+                </span>
+              )}
+              <span
+                style={{
+                  fontSize: '12px',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  background: '#ecfdf5',
+                  color: '#047857',
+                  fontWeight: 500,
+                }}
+              >
+                每日 18:30 自動排程
+              </span>
+            </div>
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
+              盤後自動透過 TWSE 總表快篩與 FinMind 增量分析三層濾網產出之作戰標的與建議進出場點位
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              data-testid="trigger-nightly-plan-btn"
+              onClick={handleTriggerPlan}
+              disabled={triggeringPlan || scanning}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                background: triggeringPlan ? '#94a3b8' : '#2563eb',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '13px',
+                cursor: triggeringPlan || scanning ? 'not-allowed' : 'pointer',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              }}
+            >
+              {triggeringPlan ? '⚡ 正在執行兩階段快篩...' : '⚡ 手動補跑排程'}
+            </button>
+          </div>
+        </div>
+
+        {planMessage && (
+          <div
+            style={{
+              padding: '8px 12px',
+              borderRadius: '6px',
+              background: planMessage.startsWith('✓') ? '#f0fdf4' : '#fffbeb',
+              color: planMessage.startsWith('✓') ? '#16a34a' : '#b45309',
+              fontSize: '13px',
+              marginBottom: '12px',
+              border: `1px solid ${planMessage.startsWith('✓') ? '#bbf7d0' : '#fde68a'}`,
+            }}
+          >
+            {planMessage}
+          </div>
+        )}
+
+        {loadingPlan ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
+            正在載入最新隔日作戰清單...
+          </div>
+        ) : !nightlyPlan?.found || !nightlyPlan.items || nightlyPlan.items.length === 0 ? (
+          <div
+            data-testid="nightly-plan-empty"
+            style={{
+              padding: '24px',
+              textAlign: 'center',
+              background: '#f8fafc',
+              borderRadius: '6px',
+              color: '#64748b',
+              fontSize: '14px',
+            }}
+          >
+            目前尚無符合高勝率門檻之作戰標的或尚未產生排程記錄。
+            <br />
+            <span style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px', display: 'inline-block' }}>
+              可點擊右上方「手動補跑排程」立即針對今日盤後行情執行兩階段篩選。
+            </span>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table
+              data-testid="nightly-plan-table"
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: '13px',
+                textAlign: 'left',
+              }}
+            >
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
+                  <th style={{ padding: '10px 12px' }}>推薦標的</th>
+                  <th style={{ padding: '10px 12px' }}>市場</th>
+                  <th style={{ padding: '10px 12px' }}>最新收盤</th>
+                  <th style={{ padding: '10px 12px' }}>觸發策略</th>
+                  <th style={{ padding: '10px 12px' }}>回測勝率</th>
+                  <th style={{ padding: '10px 12px' }}>建議進場價</th>
+                  <th style={{ padding: '10px 12px' }}>建議停損價</th>
+                  <th style={{ padding: '10px 12px' }}>停利目標價</th>
+                  <th style={{ padding: '10px 12px' }}>盈虧比 (R/R)</th>
+                  <th style={{ padding: '10px 12px' }}>持有天數</th>
+                  <th style={{ padding: '10px 12px' }}>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {nightlyPlan.items.map((item, idx) => {
+                  const winRatePct =
+                    item.win_rate != null
+                      ? (item.win_rate > 1 ? item.win_rate : item.win_rate * 100).toFixed(1)
+                      : '-'
+                  return (
+                    <tr
+                      key={item.stock_id || idx}
+                      style={{
+                        borderBottom: '1px solid #f1f5f9',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>
+                        <button
+                          type="button"
+                          onClick={() => onSelectStock(item.stock_id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#2563eb',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            padding: 0,
+                            fontSize: '13px',
+                            textDecoration: 'underline',
+                          }}
+                        >
+                          {item.stock_id} {item.stock_name}
+                        </button>
+                      </td>
+                      <td style={{ padding: '10px 12px', color: '#64748b' }}>{item.market}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.close_price.toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            background: '#f1f5f9',
+                            color: '#334155',
+                            fontSize: '12px',
+                          }}
+                        >
+                          {item.strategy || '-'}
+                        </span>
+                      </td>
+                      <td
+                        style={{
+                          padding: '10px 12px',
+                          fontWeight: 700,
+                          color: Number(winRatePct) >= 70 ? '#16a34a' : '#2563eb',
+                        }}
+                      >
+                        {winRatePct !== '-' ? `${winRatePct}%` : '-'}
+                      </td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>
+                        {item.entry_price.toFixed(2)}
+                      </td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600, color: '#dc2626' }}>
+                        {item.stop_loss.toFixed(2)}
+                      </td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600, color: '#16a34a' }}>
+                        {item.take_profit.toFixed(2)}
+                      </td>
+                      <td style={{ padding: '10px 12px', color: '#475569' }}>
+                        {item.risk_reward_ratio > 0 ? `${item.risk_reward_ratio}:1` : '-'}
+                      </td>
+                      <td style={{ padding: '10px 12px', color: '#64748b' }}>
+                        {item.holding_days} 日
+                      </td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <button
+                          type="button"
+                          onClick={() => onSelectStock(item.stock_id)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: '#ffffff',
+                            color: '#2563eb',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          查看 K 線
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Configuration Control Panel */}
       <div
         style={{
@@ -409,6 +714,32 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
                 ? '若遭遇每小時 600 次額度上限，將自動降級以本機快取繼續掃描'
                 : '僅掃描本機快取資料庫（毫秒級極速掃描）'}
             </div>
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #e2e8f0',
+                background: twoStage ? '#f0fdf4' : '#f8fafc',
+                cursor: scanning ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                marginTop: '8px',
+              }}
+            >
+              <input
+                type="checkbox"
+                data-testid="two-stage-checkbox"
+                checked={twoStage}
+                disabled={scanning}
+                onChange={(e) => setTwoStage(e.target.checked)}
+              />
+              <span style={{ fontWeight: 500, color: twoStage ? '#15803d' : '#475569' }}>
+                啟用兩階段全市場快篩（TWSE 總表快篩 + 精準增量同步）
+              </span>
+            </label>
           </div>
         </div>
 
