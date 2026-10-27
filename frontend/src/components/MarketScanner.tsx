@@ -6,10 +6,14 @@ import type {
   ScanMatchedStock,
   ScanOptionPool,
   ScanStreamEvent,
+  WatchlistItem,
 } from '../types/api'
 
 interface MarketScannerProps {
   onSelectStock: (stockId: string) => void
+  watchlist?: WatchlistItem[]
+  onToggleWatchlist?: (stockId: string, stockName?: string, addedPrice?: number) => void
+  isWatchlistLoading?: boolean
 }
 
 const DEFAULT_POOLS: ScanOptionPool[] = [
@@ -38,7 +42,17 @@ type SortField =
 
 type SortDirection = 'asc' | 'desc'
 
-export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) => {
+export const MarketScanner: React.FC<MarketScannerProps> = ({
+  onSelectStock,
+  watchlist = [],
+  onToggleWatchlist,
+  isWatchlistLoading = false,
+}) => {
+  const watchlistStockIds = useMemo(
+    () => new Set((watchlist || []).map((w) => w.stock_id)),
+    [watchlist]
+  )
+
   // Option lists
   const [pools, setPools] = useState<ScanOptionPool[]>(DEFAULT_POOLS)
   const [industries, setIndustries] = useState<string[]>([])
@@ -447,6 +461,7 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
             >
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
+                  <th style={{ padding: '10px 8px', width: '40px', textAlign: 'center' }}>收藏</th>
                   <th style={{ padding: '10px 12px' }}>推薦標的</th>
                   <th style={{ padding: '10px 12px' }}>市場</th>
                   <th style={{ padding: '10px 12px' }}>最新收盤</th>
@@ -474,6 +489,33 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
                         transition: 'background 0.15s',
                       }}
                     >
+                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          data-testid={`toggle-watchlist-nightly-${item.stock_id}`}
+                          aria-label={
+                            watchlistStockIds.has(item.stock_id)
+                              ? `從自選股移除 ${item.stock_id}`
+                              : `加入自選股 ${item.stock_id}`
+                          }
+                          disabled={isWatchlistLoading}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onToggleWatchlist?.(item.stock_id, item.stock_name, item.close_price)
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: isWatchlistLoading ? 'not-allowed' : 'pointer',
+                            fontSize: '18px',
+                            padding: '2px',
+                            lineHeight: 1,
+                            color: watchlistStockIds.has(item.stock_id) ? '#eab308' : '#94a3b8',
+                          }}
+                        >
+                          {watchlistStockIds.has(item.stock_id) ? '⭐' : '☆'}
+                        </button>
+                      </td>
                       <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>
                         <button
                           type="button"
@@ -665,17 +707,14 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
               }}
             >
               <option value="" style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>
-                全部產業（不限）
+                全部產業
               </option>
-              {industries.map((ind) => (
-                <option
-                  key={ind}
-                  value={ind}
-                  style={{ color: '#0f172a', backgroundColor: '#ffffff' }}
-                >
-                  {ind}
-                </option>
-              ))}
+              <option value="tech" style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>
+                科技股（電子八大類）
+              </option>
+              <option value="non_tech" style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>
+                非科技股
+              </option>
             </select>
           </div>
 
@@ -1101,6 +1140,9 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
             >
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
+                  <th style={{ padding: '10px 8px', width: '40px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    收藏
+                  </th>
                   <th
                     onClick={() => handleSort('stock_id')}
                     data-testid="sort-stock_id"
@@ -1186,6 +1228,35 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({ onSelectStock }) =
                         e.currentTarget.style.background = 'transparent'
                       }}
                     >
+                      {/* 0. Watchlist toggle */}
+                      <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          data-testid={`toggle-watchlist-scanner-${stock.stock_id}`}
+                          aria-label={
+                            watchlistStockIds.has(stock.stock_id)
+                              ? `從自選股移除 ${stock.stock_id}`
+                              : `加入自選股 ${stock.stock_id}`
+                          }
+                          disabled={isWatchlistLoading}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onToggleWatchlist?.(stock.stock_id, stock.stock_name, stock.close)
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: isWatchlistLoading ? 'not-allowed' : 'pointer',
+                            fontSize: '18px',
+                            padding: '2px',
+                            lineHeight: 1,
+                            color: watchlistStockIds.has(stock.stock_id) ? '#eab308' : '#94a3b8',
+                          }}
+                        >
+                          {watchlistStockIds.has(stock.stock_id) ? '⭐' : '☆'}
+                        </button>
+                      </td>
+
                       {/* 1. Stock ID & Name */}
                       <td style={{ padding: '12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

@@ -1,6 +1,7 @@
 """Publication and effective date calculation for point-in-time correctness."""
+from __future__ import annotations
 from datetime import date
-from typing import Optional
+from typing import Optional, Tuple
 
 
 def get_monthly_revenue_effective_date(

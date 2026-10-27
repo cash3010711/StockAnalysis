@@ -317,4 +317,131 @@ describe('App Component Integration', () => {
     expect(watchlistView).toBeVisible()
     expect(screen.getByTestId('watchlist-empty')).toBeInTheDocument()
   })
+
+  it('syncs watchlist state and header count when toggling star in scanner', async () => {
+    const mockNightlyPlan = {
+      found: true,
+      plan_id: 'plan_20261026_183000',
+      scan_date: '2026-10-26',
+      created_at: '2026-10-26T18:30:00Z',
+      status: 'completed',
+      total_candidates: 10,
+      selected_count: 1,
+      items: [
+        {
+          item_id: 1,
+          plan_id: 'plan_20261026_183000',
+          stock_id: '2330',
+          stock_name: '台積電',
+          market: '上市',
+          strategy: '均線拉回 20MA',
+          win_rate: 0.725,
+          trade_count: 15,
+          entry_price: 1000.0,
+          stop_loss: 950.0,
+          take_profit: 1080.0,
+          holding_days: 20,
+          risk_reward_ratio: 1.6,
+          close_price: 1000.0,
+          volume: 25000000,
+        },
+      ],
+    }
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+      const urlStr = String(url)
+      const method = init?.method || 'GET'
+
+      if (urlStr.includes('/api/watchlist') && method === 'GET') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [],
+        } as Response
+      }
+      if (urlStr.includes('/api/watchlist') && method === 'POST') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            stock_id: '2330',
+            stock_name: '台積電',
+            added_date: '2026-10-27',
+            added_price: 1000.0,
+          }),
+        } as Response
+      }
+      if (urlStr.includes('/api/watchlist/2330') && method === 'DELETE') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ message: 'Deleted' }),
+        } as Response
+      }
+      if (urlStr.includes('/api/scanner/options')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            pools: [{ id: 'cached', name: '本機已快取股票' }],
+            industries: ['半導體業'],
+            strategies: ['均線拉回 20MA'],
+            cached_count: 1,
+            defaults: {},
+          }),
+        } as Response
+      }
+      if (urlStr.includes('/api/scanner/nightly-plan')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockNightlyPlan,
+        } as Response
+      }
+      return { ok: false, status: 404 } as Response
+    })
+
+    render(<App />)
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    const tabWatchlist = screen.getByTestId('tab-watchlist')
+    expect(tabWatchlist).toHaveTextContent('自選股追蹤')
+    expect(tabWatchlist).not.toHaveTextContent('(1)')
+
+    // Switch to scanner tab
+    const tabScanner = screen.getByTestId('tab-scanner')
+    fireEvent.click(tabScanner)
+
+    // Wait for nightly plan table row
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const starBtn = screen.getByTestId('toggle-watchlist-nightly-2330')
+    expect(starBtn).toBeInTheDocument()
+    expect(starBtn).toHaveTextContent('☆')
+
+    // Click star to add to watchlist
+    await act(async () => {
+      fireEvent.click(starBtn)
+      await Promise.resolve()
+    })
+
+    // Header count should immediately show (1) and star becomes ⭐
+    expect(tabWatchlist).toHaveTextContent('自選股追蹤 (1)')
+    expect(starBtn).toHaveTextContent('⭐')
+
+    // Click again to remove from watchlist
+    await act(async () => {
+      fireEvent.click(starBtn)
+      await Promise.resolve()
+    })
+
+    // Header count reverts and star becomes ☆
+    expect(tabWatchlist).toHaveTextContent('自選股追蹤')
+    expect(tabWatchlist).not.toHaveTextContent('(1)')
+    expect(starBtn).toHaveTextContent('☆')
+  })
 })

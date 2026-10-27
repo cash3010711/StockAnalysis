@@ -94,6 +94,23 @@ class ScanFilterConfig:
             self.strategies = list(params.ALL_STRATEGIES)
 
 
+TECH_FILTER_VALUES = {"tech", "科技股", "科技股（電子八大類）"}
+NON_TECH_FILTER_VALUES = {"non_tech", "非科技股"}
+
+
+def matches_industry_filter(category: Optional[str], ind_filter: Optional[str]) -> bool:
+    """Check if stock industry_category matches the given filter."""
+    if not ind_filter or not ind_filter.strip():
+        return True
+    cleaned = ind_filter.strip()
+    cat = (category or "").strip()
+    if cleaned in TECH_FILTER_VALUES:
+        return cat in params.TECH_INDUSTRIES
+    if cleaned in NON_TECH_FILTER_VALUES:
+        return bool(cat) and cat not in params.TECH_INDUSTRIES and "ETF" not in cat.upper()
+    return cat == cleaned
+
+
 def _enrich_stock_metadata(service: DataService, stock_id: str) -> Dict[str, str]:
     """Resolve metadata for a stock_id from DB cache, fallback to TAIWAN_50_STOCKS, or defaults."""
     db_meta = service.repo.get_stock_metadata(stock_id)
@@ -146,19 +163,17 @@ def resolve_scan_pool(
             top_n=config.top_candidates,
         )
         if candidates:
-            stocks = [
-                {
-                    "stock_id": q.stock_id,
-                    "stock_name": q.stock_name,
-                    "market": "上市" if q.market == "TWSE" else "上櫃",
-                    "type": "twse" if q.market == "TWSE" else "tpex",
-                    "industry_category": "",
-                }
-                for q in candidates
-            ]
+            stocks = []
+            for q in candidates:
+                meta = _enrich_stock_metadata(service, q.stock_id)
+                if meta.get("stock_name") == q.stock_id and q.stock_name:
+                    meta["stock_name"] = q.stock_name
+                stocks.append(meta)
             if config.industry_category:
-                ind_filter = config.industry_category.strip()
-                stocks = [s for s in stocks if s.get("industry_category") == ind_filter]
+                stocks = [
+                    s for s in stocks
+                    if matches_industry_filter(s.get("industry_category"), config.industry_category)
+                ]
             if config.limit is not None and config.limit > 0:
                 stocks = stocks[: config.limit]
             return stocks
@@ -183,41 +198,57 @@ def resolve_scan_pool(
         cached_ids = service.repo.get_cached_stock_ids()
         stocks = [_enrich_stock_metadata(service, sid) for sid in cached_ids]
         if ind_filter:
-            stocks = [s for s in stocks if s.get("industry_category") == ind_filter]
+            stocks = [s for s in stocks if matches_industry_filter(s.get("industry_category"), ind_filter)]
 
     elif pool == "tw50":
         stocks = [_enrich_stock_metadata(service, item["stock_id"]) for item in TAIWAN_50_STOCKS]
         if ind_filter:
-            stocks = [s for s in stocks if s.get("industry_category") == ind_filter]
+            stocks = [s for s in stocks if matches_industry_filter(s.get("industry_category"), ind_filter)]
 
     elif pool == "industry":
-        stocks = service.repo.get_supported_stocks(industry_category=ind_filter)
+        if ind_filter in TECH_FILTER_VALUES or ind_filter in NON_TECH_FILTER_VALUES:
+            all_stocks = service.repo.get_supported_stocks()
+            stocks = [s for s in all_stocks if matches_industry_filter(s.get("industry_category"), ind_filter)]
+        else:
+            stocks = service.repo.get_supported_stocks(industry_category=ind_filter)
         if not stocks and not service.repo.get_supported_stocks():
             # Fallback to TAIWAN_50_STOCKS when stock_info table is empty
             stocks = [dict(item) for item in TAIWAN_50_STOCKS]
             if ind_filter:
-                stocks = [s for s in stocks if s.get("industry_category") == ind_filter]
+                stocks = [s for s in stocks if matches_industry_filter(s.get("industry_category"), ind_filter)]
 
     elif pool == "all":
-        stocks = service.repo.get_supported_stocks(industry_category=ind_filter)
+        if ind_filter in TECH_FILTER_VALUES or ind_filter in NON_TECH_FILTER_VALUES:
+            all_stocks = service.repo.get_supported_stocks()
+            stocks = [s for s in all_stocks if matches_industry_filter(s.get("industry_category"), ind_filter)]
+        else:
+            stocks = service.repo.get_supported_stocks(industry_category=ind_filter)
         if not stocks and not service.repo.get_supported_stocks():
             stocks = [dict(item) for item in TAIWAN_50_STOCKS]
             if ind_filter:
-                stocks = [s for s in stocks if s.get("industry_category") == ind_filter]
+                stocks = [s for s in stocks if matches_industry_filter(s.get("industry_category"), ind_filter)]
 
     elif pool == "twse":
-        stocks = service.repo.get_supported_stocks(industry_category=ind_filter, market_type="twse")
+        if ind_filter in TECH_FILTER_VALUES or ind_filter in NON_TECH_FILTER_VALUES:
+            all_stocks = service.repo.get_supported_stocks(market_type="twse")
+            stocks = [s for s in all_stocks if matches_industry_filter(s.get("industry_category"), ind_filter)]
+        else:
+            stocks = service.repo.get_supported_stocks(industry_category=ind_filter, market_type="twse")
         if not stocks and not service.repo.get_supported_stocks():
             stocks = [dict(item) for item in TAIWAN_50_STOCKS if item.get("type") == "twse"]
             if ind_filter:
-                stocks = [s for s in stocks if s.get("industry_category") == ind_filter]
+                stocks = [s for s in stocks if matches_industry_filter(s.get("industry_category"), ind_filter)]
 
     elif pool == "tpex":
-        stocks = service.repo.get_supported_stocks(industry_category=ind_filter, market_type="tpex")
+        if ind_filter in TECH_FILTER_VALUES or ind_filter in NON_TECH_FILTER_VALUES:
+            all_stocks = service.repo.get_supported_stocks(market_type="tpex")
+            stocks = [s for s in all_stocks if matches_industry_filter(s.get("industry_category"), ind_filter)]
+        else:
+            stocks = service.repo.get_supported_stocks(industry_category=ind_filter, market_type="tpex")
         if not stocks and not service.repo.get_supported_stocks():
             stocks = [dict(item) for item in TAIWAN_50_STOCKS if item.get("type") == "tpex"]
             if ind_filter:
-                stocks = [s for s in stocks if s.get("industry_category") == ind_filter]
+                stocks = [s for s in stocks if matches_industry_filter(s.get("industry_category"), ind_filter)]
 
     else:
         raise ValueError(f"Unsupported scan pool: {config.pool}")

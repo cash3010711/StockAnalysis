@@ -1,7 +1,7 @@
 """Watchlist API router for managing personal tracked stocks."""
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 import pandas as pd
 from pydantic import BaseModel, Field
 
@@ -9,6 +9,20 @@ from app.api.stocks import get_data_service
 from app.data.service import DataService
 
 router = APIRouter(prefix="/api", tags=["watchlist"])
+
+
+class WatchlistGroupModel(BaseModel):
+    id: int
+    name: str
+    created_at: Optional[str] = None
+
+
+class WatchlistGroupCreateRequest(BaseModel):
+    name: str = Field(..., description="群組名稱")
+
+
+class StockGroupsUpdateRequest(BaseModel):
+    group_ids: List[int] = Field(default_factory=list, description="欲指派之群組 ID 清單")
 
 
 class WatchlistItemModel(BaseModel):
@@ -22,6 +36,7 @@ class WatchlistItemModel(BaseModel):
     return_pct: Optional[float] = None
     notes: Optional[str] = ""
     created_at: Optional[str] = None
+    groups: List[WatchlistGroupModel] = Field(default_factory=list)
 
 
 class WatchlistCreateRequest(BaseModel):
@@ -57,6 +72,16 @@ def _enrich_watchlist_item(item: Dict[str, Any], service: DataService) -> Watchl
             else:
                 change_pct = 0.0
 
+    groups_raw = service.repo.get_groups_for_stock(stock_id)
+    groups = [
+        WatchlistGroupModel(
+            id=g["id"],
+            name=g["name"],
+            created_at=str(g.get("created_at") or ""),
+        )
+        for g in groups_raw
+    ]
+
     return WatchlistItemModel(
         stock_id=stock_id,
         stock_name=item.get("stock_name") or service.get_stock_name(stock_id),
@@ -68,16 +93,144 @@ def _enrich_watchlist_item(item: Dict[str, Any], service: DataService) -> Watchl
         return_pct=change_pct,
         notes=item.get("notes") or "",
         created_at=str(item.get("created_at") or ""),
+        groups=groups,
     )
 
 
 @router.get("/watchlist", response_model=List[WatchlistItemModel])
 def get_watchlist(
+    group_id: Optional[int] = Query(None, description="若指定則僅回傳該群組之自選股"),
     service: DataService = Depends(get_data_service),
 ):
     """Retrieve all tracked watchlist stocks with their latest prices and return rates."""
-    raw_items = service.repo.get_watchlist()
+    raw_items = service.repo.get_watchlist(group_id=group_id)
     return [_enrich_watchlist_item(item, service) for item in raw_items]
+
+
+# --- Watchlist Groups Endpoints ---
+
+
+@router.get("/watchlist/groups", response_model=List[WatchlistGroupModel])
+def get_watchlist_groups(
+    service: DataService = Depends(get_data_service),
+):
+    """List all custom watchlist groups."""
+    raw_groups = service.repo.get_watchlist_groups()
+    return [
+        WatchlistGroupModel(
+            id=g["id"],
+            name=g["name"],
+            created_at=str(g.get("created_at") or ""),
+        )
+        for g in raw_groups
+    ]
+
+
+@router.post(
+    "/watchlist/groups",
+    response_model=WatchlistGroupModel,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_watchlist_group(
+    request: WatchlistGroupCreateRequest,
+    service: DataService = Depends(get_data_service),
+):
+    """Create a new custom watchlist group."""
+    name = (request.name or "").strip()
+    if not name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="群組名稱不能為空",
+        )
+    existing = service.repo.get_watchlist_group_by_name(name)
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"群組名稱 '{name}' 已存在",
+        )
+    try:
+        group = service.repo.create_watchlist_group(name)
+        return WatchlistGroupModel(
+            id=group["id"],
+            name=group["name"],
+            created_at=str(group.get("created_at") or ""),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+
+@router.delete("/watchlist/groups/{id}")
+def delete_watchlist_group(
+    id: int,
+    service: DataService = Depends(get_data_service),
+):
+    """Delete a watchlist group by id."""
+    group = service.repo.get_watchlist_group(id)
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"群組 ID {id} 不存在",
+        )
+    service.repo.delete_watchlist_group(id)
+    return {
+        "success": True,
+        "group_id": id,
+        "message": f"已成功刪除群組 {group['name']}",
+    }
+
+
+@router.put("/watchlist/{stock_id}/groups")
+def update_stock_groups(
+    stock_id: str,
+    request: StockGroupsUpdateRequest,
+    service: DataService = Depends(get_data_service),
+):
+    """Update group assignments for a specific stock."""
+    sid = stock_id.strip()
+    if not service.repo.is_in_watchlist(sid):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"股票 {sid} 不在自選股清單中",
+        )
+
+    for gid in request.group_ids:
+        if not service.repo.get_watchlist_group(gid):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"群組 ID {gid} 不存在",
+            )
+
+    assigned = service.repo.set_stock_groups(sid, request.group_ids)
+    return {
+        "success": True,
+        "stock_id": sid,
+        "group_ids": assigned,
+    }
+
+
+@router.delete("/watchlist/{stock_id}/groups/{group_id}")
+def remove_stock_from_group(
+    stock_id: str,
+    group_id: int,
+    service: DataService = Depends(get_data_service),
+):
+    """Remove a stock from a specific group."""
+    sid = stock_id.strip()
+    if not service.repo.is_in_watchlist(sid):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"股票 {sid} 不在自選股清單中",
+        )
+    service.repo.remove_stock_from_group(sid, group_id)
+    return {
+        "success": True,
+        "stock_id": sid,
+        "group_id": group_id,
+        "message": f"已自群組移除股票 {sid}",
+    }
 
 
 @router.post("/watchlist", response_model=WatchlistItemModel, status_code=status.HTTP_201_CREATED)

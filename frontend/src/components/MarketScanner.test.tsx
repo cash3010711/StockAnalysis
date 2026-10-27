@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MarketScanner } from './MarketScanner'
 import type { ScannerOptionsResponse, ScanMatchedStock } from '../types/api'
@@ -189,8 +189,8 @@ describe('MarketScanner Component', () => {
 
     // Change industry
     const industrySelect = screen.getByTestId('industry-select')
-    fireEvent.change(industrySelect, { target: { value: '半導體業' } })
-    expect((industrySelect as HTMLSelectElement).value).toBe('半導體業')
+    fireEvent.change(industrySelect, { target: { value: 'tech' } })
+    expect((industrySelect as HTMLSelectElement).value).toBe('tech')
 
     // Toggle sync checkbox
     const syncCheckbox = screen.getByTestId('sync-latest-checkbox')
@@ -306,11 +306,9 @@ describe('MarketScanner Component', () => {
 
     // Click button "深度分析" on 2454
     const row2454 = screen.getByTestId('stock-row-2454')
-    const deepAnalysisBtn = row2454.querySelector('button[type="button"]')
-    if (deepAnalysisBtn) {
-      fireEvent.click(deepAnalysisBtn)
-      expect(onSelectStock).toHaveBeenCalledWith('2454')
-    }
+    const deepAnalysisBtn = within(row2454).getByText('深度分析')
+    fireEvent.click(deepAnalysisBtn)
+    expect(onSelectStock).toHaveBeenCalledWith('2454')
   })
 
   it('supports sorting by different columns', async () => {
@@ -643,5 +641,187 @@ describe('MarketScanner Component', () => {
     await waitFor(() => {
       expect(screen.getByText(/隔日作戰清單已重新計算並完成更新/)).toBeInTheDocument()
     })
+  })
+
+  it('correctly passes industry filter options (tech / non_tech) to scan stream request', async () => {
+    let capturedBody: any = null
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/api/scanner/options')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockOptions,
+        } as Response
+      }
+      if (urlStr.includes('/api/scanner/stream')) {
+        if (init && init.body) {
+          capturedBody = JSON.parse(init.body as string)
+        }
+        return createNDJSONResponse([
+          { event: 'start', total: 0 },
+          {
+            event: 'done',
+            total: 0,
+            scanned: 0,
+            matched_count: 0,
+            quota_exceeded: false,
+            warnings: [],
+          },
+        ])
+      }
+      return { ok: false, status: 404 } as Response
+    })
+
+    render(<MarketScanner onSelectStock={vi.fn()} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('industry-select')).toBeInTheDocument()
+    })
+
+    const industrySelect = screen.getByTestId('industry-select')
+    expect(screen.getByText('科技股（電子八大類）')).toBeInTheDocument()
+    expect(screen.getByText('非科技股')).toBeInTheDocument()
+
+    // Test tech filter selection
+    fireEvent.change(industrySelect, { target: { value: 'tech' } })
+    expect((industrySelect as HTMLSelectElement).value).toBe('tech')
+
+    const startBtn = screen.getByTestId('start-scan-btn')
+    fireEvent.click(startBtn)
+
+    await waitFor(() => {
+      expect(capturedBody).not.toBeNull()
+      expect(capturedBody.industry_category).toBe('tech')
+    })
+  })
+
+  it('renders watchlist star buttons and toggles watchlist in scan results and nightly plan', async () => {
+    const onToggleWatchlist = vi.fn()
+    const mockWatchlist = [
+      {
+        stock_id: '2330',
+        stock_name: '台積電',
+        added_date: '2026-10-20',
+        added_price: 950.0,
+      },
+    ]
+
+    const mockNightlyPlan = {
+      found: true,
+      plan_id: 'plan_20261026_183000',
+      scan_date: '2026-10-26',
+      created_at: '2026-10-26T18:30:00Z',
+      status: 'completed',
+      total_candidates: 45,
+      selected_count: 1,
+      items: [
+        {
+          item_id: 1,
+          plan_id: 'plan_20261026_183000',
+          stock_id: '2330',
+          stock_name: '台積電',
+          market: '上市',
+          strategy: '均線拉回 20MA',
+          win_rate: 0.725,
+          trade_count: 15,
+          entry_price: 1000.0,
+          stop_loss: 950.0,
+          take_profit: 1080.0,
+          holding_days: 20,
+          risk_reward_ratio: 1.6,
+          close_price: 1000.0,
+          volume: 25000000,
+        },
+      ],
+    }
+
+    const events = [
+      { event: 'start', total: 2 },
+      {
+        event: 'match',
+        data: mockMatchedStock1, // 2330
+        current: 1,
+        total: 2,
+        matched_count: 1,
+      },
+      {
+        event: 'match',
+        data: mockMatchedStock2, // 2454
+        current: 2,
+        total: 2,
+        matched_count: 2,
+      },
+      {
+        event: 'done',
+        total: 2,
+        scanned: 2,
+        matched_count: 2,
+        quota_exceeded: false,
+        warnings: [],
+      },
+    ]
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/api/scanner/options')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockOptions,
+        } as Response
+      }
+      if (urlStr.includes('/api/scanner/nightly-plan')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockNightlyPlan,
+        } as Response
+      }
+      if (urlStr.includes('/api/scanner/stream')) {
+        return createNDJSONResponse(events)
+      }
+      return { ok: false, status: 404 } as Response
+    })
+
+    render(
+      <MarketScanner
+        onSelectStock={vi.fn()}
+        watchlist={mockWatchlist}
+        onToggleWatchlist={onToggleWatchlist}
+      />
+    )
+
+    // Verify Nightly plan star button for 2330 (in watchlist -> ⭐)
+    await waitFor(() => {
+      const nightlyStar = screen.getByTestId('toggle-watchlist-nightly-2330')
+      expect(nightlyStar).toBeInTheDocument()
+      expect(nightlyStar).toHaveTextContent('⭐')
+    })
+
+    // Click nightly plan star button
+    const nightlyStar = screen.getByTestId('toggle-watchlist-nightly-2330')
+    fireEvent.click(nightlyStar)
+    expect(onToggleWatchlist).toHaveBeenCalledWith('2330', '台積電', 1000.0)
+
+    // Start scan to get scan results
+    const startBtn = screen.getByTestId('start-scan-btn')
+    fireEvent.click(startBtn)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('toggle-watchlist-scanner-2330')).toBeInTheDocument()
+      expect(screen.getByTestId('toggle-watchlist-scanner-2454')).toBeInTheDocument()
+    })
+
+    // 2330 is in watchlist -> ⭐
+    const scanStar2330 = screen.getByTestId('toggle-watchlist-scanner-2330')
+    expect(scanStar2330).toHaveTextContent('⭐')
+
+    // 2454 is NOT in watchlist -> ☆
+    const scanStar2454 = screen.getByTestId('toggle-watchlist-scanner-2454')
+    expect(scanStar2454).toHaveTextContent('☆')
+
+    // Click 2454 star button to add
+    fireEvent.click(scanStar2454)
+    expect(onToggleWatchlist).toHaveBeenCalledWith('2454', '聯發科', 1250.0)
   })
 })

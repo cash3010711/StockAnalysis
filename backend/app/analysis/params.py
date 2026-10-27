@@ -3,7 +3,19 @@
 All thresholds specified in design.md and specs are defined here as constants.
 """
 
-from typing import List
+from typing import List, Set
+
+# Industry Categories (電子八大類)
+TECH_INDUSTRIES: Set[str] = {
+    "半導體業",
+    "電腦及周邊設備業",
+    "光電業",
+    "通信網路業",
+    "電子零組件業",
+    "電子通路業",
+    "資訊服務業",
+    "其他電子業",
+}
 
 # Fundamental filter thresholds
 REVENUE_YOY_MIN: float = 0.0  # Monthly revenue YoY must be > 0%

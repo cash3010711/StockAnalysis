@@ -27,6 +27,7 @@ class CacheRepository:
         if self.db_path == ":memory:":
             self._mem_conn = sqlite3.connect(":memory:", check_same_thread=False)
             self._mem_conn.row_factory = sqlite3.Row
+            self._mem_conn.execute("PRAGMA foreign_keys = ON;")
         else:
             Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -37,6 +38,7 @@ class CacheRepository:
             return self._mem_conn
         conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON;")
         return conn
 
     def close(self):
@@ -206,6 +208,29 @@ class CacheRepository:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """)
+
+            # 11. Watchlist Groups & Group Items
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS watchlist_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS watchlist_group_items (
+                stock_id TEXT NOT NULL,
+                group_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (stock_id, group_id),
+                FOREIGN KEY (stock_id) REFERENCES watchlist(stock_id) ON DELETE CASCADE,
+                FOREIGN KEY (group_id) REFERENCES watchlist_groups(id) ON DELETE CASCADE
+            )
+            """)
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_watchlist_group_items_group_id ON watchlist_group_items(group_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_watchlist_group_items_stock_id ON watchlist_group_items(stock_id)")
 
             conn.commit()
 
@@ -970,11 +995,23 @@ class CacheRepository:
             raise RuntimeError(f"Failed to retrieve watchlist item after insert: {stock_id}")
         return item
 
-    def get_watchlist(self) -> List[Dict[str, Any]]:
-        """Get all stocks in watchlist ordered by created_at DESC."""
+    def get_watchlist(self, group_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get all stocks in watchlist, optionally filtered by group_id."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM watchlist ORDER BY created_at DESC")
+            if group_id is not None:
+                cursor.execute(
+                    """
+                    SELECT w.*
+                    FROM watchlist w
+                    INNER JOIN watchlist_group_items gi ON w.stock_id = gi.stock_id
+                    WHERE gi.group_id = ?
+                    ORDER BY w.created_at DESC
+                    """,
+                    (group_id,),
+                )
+            else:
+                cursor.execute("SELECT * FROM watchlist ORDER BY created_at DESC")
             return [dict(row) for row in cursor.fetchall()]
 
     list_watchlist = get_watchlist
@@ -1000,4 +1037,136 @@ class CacheRepository:
     def is_in_watchlist(self, stock_id: str) -> bool:
         """Check if stock_id is in watchlist."""
         return self.get_watchlist_item(stock_id.strip()) is not None
+
+    # --- Watchlist Groups Operations ---
+
+    def create_watchlist_group(self, name: str) -> Dict[str, Any]:
+        """Create a new watchlist group."""
+        clean_name = name.strip()
+        if not clean_name:
+            raise ValueError("Group name cannot be empty")
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO watchlist_groups (name) VALUES (?)",
+                (clean_name,),
+            )
+            group_id = cursor.lastrowid
+            conn.commit()
+        group = self.get_watchlist_group(group_id)
+        if group is None:
+            raise RuntimeError(f"Failed to retrieve group after creation: {group_id}")
+        return group
+
+    def get_watchlist_groups(self) -> List[Dict[str, Any]]:
+        """Get all watchlist groups ordered by id ASC."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM watchlist_groups ORDER BY id ASC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_watchlist_group(self, group_id: int) -> Optional[Dict[str, Any]]:
+        """Get a single watchlist group by id."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM watchlist_groups WHERE id = ?", (group_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_watchlist_group_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get a single watchlist group by name."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM watchlist_groups WHERE name = ?", (name.strip(),))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def update_watchlist_group(self, group_id: int, name: str) -> Optional[Dict[str, Any]]:
+        """Update a watchlist group name."""
+        clean_name = name.strip()
+        if not clean_name:
+            raise ValueError("Group name cannot be empty")
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE watchlist_groups SET name = ? WHERE id = ?",
+                (clean_name, group_id),
+            )
+            conn.commit()
+            if cursor.rowcount == 0:
+                return None
+        return self.get_watchlist_group(group_id)
+
+    def delete_watchlist_group(self, group_id: int) -> bool:
+        """Delete a watchlist group by id (cascades to watchlist_group_items)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM watchlist_groups WHERE id = ?", (group_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def add_stock_to_group(self, stock_id: str, group_id: int) -> bool:
+        """Associate a stock with a group."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT OR IGNORE INTO watchlist_group_items (stock_id, group_id)
+                VALUES (?, ?)
+                """,
+                (stock_id.strip(), group_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def remove_stock_from_group(self, stock_id: str, group_id: int) -> bool:
+        """Remove a stock from a specific group."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "DELETE FROM watchlist_group_items WHERE stock_id = ? AND group_id = ?",
+                (stock_id.strip(), group_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def get_groups_for_stock(self, stock_id: str) -> List[Dict[str, Any]]:
+        """Get all groups associated with a stock."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT g.id, g.name, g.created_at
+                FROM watchlist_groups g
+                INNER JOIN watchlist_group_items gi ON g.id = gi.group_id
+                WHERE gi.stock_id = ?
+                ORDER BY g.id ASC
+                """,
+                (stock_id.strip(),),
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_stocks_in_group(self, group_id: int) -> List[str]:
+        """Get all stock_ids associated with a group."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT stock_id FROM watchlist_group_items WHERE group_id = ? ORDER BY created_at DESC",
+                (group_id,),
+            )
+            return [row["stock_id"] for row in cursor.fetchall()]
+
+    def set_stock_groups(self, stock_id: str, group_ids: List[int]) -> List[int]:
+        """Replace all group associations for a stock."""
+        clean_sid = stock_id.strip()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM watchlist_group_items WHERE stock_id = ?", (clean_sid,))
+            for gid in set(group_ids):
+                cursor.execute(
+                    "INSERT INTO watchlist_group_items (stock_id, group_id) VALUES (?, ?)",
+                    (clean_sid, gid),
+                )
+            conn.commit()
+        return list(set(group_ids))
 

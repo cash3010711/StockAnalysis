@@ -47,7 +47,11 @@ export function App() {
     loadWatchlist()
   }, [loadWatchlist])
 
-  const handleToggleWatchlist = async (stockId: string) => {
+  const handleToggleWatchlist = async (
+    stockId: string,
+    stockName?: string,
+    addedPrice?: number
+  ) => {
     const existing = watchlist.find((item) => item.stock_id === stockId)
     if (existing) {
       try {
@@ -62,10 +66,11 @@ export function App() {
     } else {
       try {
         setWatchlistLoading(true)
-        const lastClose = analysis?.ohlcv?.[analysis.ohlcv.length - 1]?.close
+        const lastClose = addedPrice ?? analysis?.ohlcv?.[analysis.ohlcv.length - 1]?.close
+        const name = stockName ?? analysis?.stock_name
         const added = await addToWatchlist({
           stock_id: stockId,
-          stock_name: analysis?.stock_name,
+          stock_name: name,
           added_price: lastClose,
         })
         setWatchlist((prev) => [added, ...prev.filter((p) => p.stock_id !== stockId)])
@@ -363,7 +368,12 @@ export function App() {
           data-testid="market-scanner-view"
           style={{ display: activeTab === 'scanner' ? 'block' : 'none' }}
         >
-          <MarketScanner onSelectStock={handleScannerSelectStock} />
+          <MarketScanner
+            onSelectStock={handleScannerSelectStock}
+            watchlist={watchlist}
+            onToggleWatchlist={handleToggleWatchlist}
+            isWatchlistLoading={watchlistLoading}
+          />
         </div>
 
         {/* Tab 3: Watchlist Tracking (Keep-Alive) */}
