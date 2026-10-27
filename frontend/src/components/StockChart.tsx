@@ -39,6 +39,8 @@ export const StockChart: React.FC<StockChartProps> = ({
   const ma5SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
   const ma10SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
   const ma20SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
+  const ma60SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
+  const ma120SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
   const bbUpperSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
   const bbLowerSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null)
@@ -49,6 +51,8 @@ export const StockChart: React.FC<StockChartProps> = ({
     ma5: true,
     ma10: true,
     ma20: true,
+    ma60: false,
+    ma120: false,
     bollinger: true,
   })
 
@@ -157,6 +161,28 @@ export const StockChart: React.FC<StockChartProps> = ({
     })
     ma20SeriesRef.current = ma20Series
 
+    // MA60 series (森林綠色實線)
+    const ma60Series = chart.addSeries(LineSeries, {
+      color: '#10b981',
+      lineWidth: 2,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      visible: false,
+    })
+    ma60SeriesRef.current = ma60Series
+
+    // MA120 series (磚紅色實線)
+    const ma120Series = chart.addSeries(LineSeries, {
+      color: '#c2410c',
+      lineWidth: 2,
+      lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      visible: false,
+    })
+    ma120SeriesRef.current = ma120Series
+
     // 布林上軌 series (冷灰色細虛線 1px)
     const bbUpperSeries = chart.addSeries(LineSeries, {
       color: '#64748b',
@@ -233,6 +259,8 @@ export const StockChart: React.FC<StockChartProps> = ({
         ma5SeriesRef.current = null
         ma10SeriesRef.current = null
         ma20SeriesRef.current = null
+        ma60SeriesRef.current = null
+        ma120SeriesRef.current = null
         bbUpperSeriesRef.current = null
         bbLowerSeriesRef.current = null
         markersPluginRef.current = null
@@ -246,6 +274,8 @@ export const StockChart: React.FC<StockChartProps> = ({
     ma5SeriesRef.current?.applyOptions({ visible: visibleLayers.ma5 })
     ma10SeriesRef.current?.applyOptions({ visible: visibleLayers.ma10 })
     ma20SeriesRef.current?.applyOptions({ visible: visibleLayers.ma20 })
+    ma60SeriesRef.current?.applyOptions({ visible: visibleLayers.ma60 })
+    ma120SeriesRef.current?.applyOptions({ visible: visibleLayers.ma120 })
     bbUpperSeriesRef.current?.applyOptions({ visible: visibleLayers.bollinger })
     bbLowerSeriesRef.current?.applyOptions({ visible: visibleLayers.bollinger })
   }, [visibleLayers])
@@ -299,6 +329,12 @@ export const StockChart: React.FC<StockChartProps> = ({
     const ma20Data = sorted
       .filter((d) => d.ma20 != null)
       .map((d) => ({ time: d.date as Time, value: d.ma20! }))
+    const ma60Data = sorted
+      .filter((d) => d.ma60 != null)
+      .map((d) => ({ time: d.date as Time, value: d.ma60! }))
+    const ma120Data = sorted
+      .filter((d) => d.ma120 != null)
+      .map((d) => ({ time: d.date as Time, value: d.ma120! }))
     const bbUpperData = sorted
       .filter((d) => d.bb_upper != null)
       .map((d) => ({ time: d.date as Time, value: d.bb_upper! }))
@@ -309,6 +345,8 @@ export const StockChart: React.FC<StockChartProps> = ({
     ma5SeriesRef.current?.setData(ma5Data)
     ma10SeriesRef.current?.setData(ma10Data)
     ma20SeriesRef.current?.setData(ma20Data)
+    ma60SeriesRef.current?.setData(ma60Data)
+    ma120SeriesRef.current?.setData(ma120Data)
     bbUpperSeriesRef.current?.setData(bbUpperData)
     bbLowerSeriesRef.current?.setData(bbLowerData)
 
@@ -580,6 +618,42 @@ export const StockChart: React.FC<StockChartProps> = ({
           </button>
           <button
             type="button"
+            data-testid="toggle-ma60"
+            onClick={() => setVisibleLayers((prev) => ({ ...prev, ma60: !prev.ma60 }))}
+            style={{
+              cursor: 'pointer',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 500,
+              border: visibleLayers.ma60 ? '1px solid #10b981' : '1px solid #cbd5e1',
+              background: visibleLayers.ma60 ? '#d1fae5' : '#ffffff',
+              color: visibleLayers.ma60 ? '#047857' : '#94a3b8',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {visibleLayers.ma60 ? '[✓] 60MA' : '[ ] 60MA'}
+          </button>
+          <button
+            type="button"
+            data-testid="toggle-ma120"
+            onClick={() => setVisibleLayers((prev) => ({ ...prev, ma120: !prev.ma120 }))}
+            style={{
+              cursor: 'pointer',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 500,
+              border: visibleLayers.ma120 ? '1px solid #c2410c' : '1px solid #cbd5e1',
+              background: visibleLayers.ma120 ? '#ffedd5' : '#ffffff',
+              color: visibleLayers.ma120 ? '#9a3412' : '#94a3b8',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {visibleLayers.ma120 ? '[✓] 120MA' : '[ ] 120MA'}
+          </button>
+          <button
+            type="button"
             data-testid="toggle-bollinger"
             onClick={() => setVisibleLayers((prev) => ({ ...prev, bollinger: !prev.bollinger }))}
             style={{
@@ -645,6 +719,26 @@ export const StockChart: React.FC<StockChartProps> = ({
             }}
           >
             20MA / 布林中軌: {formatValue(hoveredData?.ma20 ?? hoveredData?.bb_mid)}
+          </span>
+          <span
+            data-testid="legend-ma60"
+            style={{
+              color: '#047857',
+              opacity: visibleLayers.ma60 ? 1 : 0.4,
+              fontWeight: 500,
+            }}
+          >
+            60MA: {formatValue(hoveredData?.ma60)}
+          </span>
+          <span
+            data-testid="legend-ma120"
+            style={{
+              color: '#9a3412',
+              opacity: visibleLayers.ma120 ? 1 : 0.4,
+              fontWeight: 500,
+            }}
+          >
+            120MA: {formatValue(hoveredData?.ma120)}
           </span>
           <span
             data-testid="legend-bb-upper"

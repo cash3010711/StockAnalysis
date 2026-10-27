@@ -80,6 +80,7 @@ class ScanFilterConfig:
     sync_latest: bool = False
     require_fundamental: bool = True
     require_chips: bool = True
+    require_above_ma60: bool = False
     strategies: List[str] = field(default_factory=lambda: list(params.ALL_STRATEGIES))
     limit: Optional[int] = None
     two_stage: bool = False  # Enable two-stage all-market fast screening
@@ -308,6 +309,12 @@ def scan_single_stock(
     if config.require_chips and not today_analysis.chips.passed:
         return None, quota_hit
 
+    # Check 60MA condition if required
+    if config.require_above_ma60:
+        ma60_val = eval_row.get("ma60")
+        if pd.isna(ma60_val) or close < float(ma60_val):
+            return None, quota_hit
+
     # Compute entry / exit levels
     entry_price = round_to_tick(close)
     stop_loss, take_profit, max_holding_days = calculate_exit_levels(close, atr14)
@@ -535,6 +542,7 @@ def run_two_stage_scan(
     strategies: Optional[List[str]] = None,
     require_fundamental: bool = True,
     require_chips: bool = True,
+    require_above_ma60: bool = False,
 ) -> Dict[str, Any]:
     """Execute the full two-stage market scan workflow:
 
@@ -549,6 +557,7 @@ def run_two_stage_scan(
         sync_latest=True,
         require_fundamental=require_fundamental,
         require_chips=require_chips,
+        require_above_ma60=require_above_ma60,
         strategies=strategies if strategies else list(params.ALL_STRATEGIES),
         min_volume_lots=min_volume_lots,
         min_price=min_price,

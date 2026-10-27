@@ -448,3 +448,43 @@ def test_api_scanner_stream(api_client, service):
     assert "match" in ev_types
     assert "progress" in ev_types
     assert "done" in ev_types
+
+
+def test_scanner_require_above_ma60(service):
+    """Verify require_above_ma60 filters out stocks where close < 60MA."""
+    # Seed 2330 with close=130 > ma60 ~ 100.5
+    _seed_full_stock(service, "2330", "台積電", trigger_breakout=True)
+
+    # Config with require_above_ma60=True should match 2330
+    cfg_pass = ScanFilterConfig(
+        pool="cached",
+        require_above_ma60=True,
+        require_fundamental=False,
+        require_chips=False,
+    )
+    res_pass, _ = scan_single_stock(service, "2330", cfg_pass)
+    assert res_pass is not None
+    assert res_pass["stock_id"] == "2330"
+
+    # Now drop the last close below 60MA
+    daily_k = service.repo.get_daily_k("2330")
+    daily_k.loc[daily_k.index[-1], "close"] = 50.0  # Well below 60MA (~100)
+    service.repo.upsert_daily_k("2330", daily_k)
+
+    # Should now be filtered out when require_above_ma60 is True
+    res_fail, _ = scan_single_stock(service, "2330", cfg_pass)
+    assert res_fail is None
+
+    # But without require_above_ma60, if breakout was still triggered (or if we relax), it wouldn't fail on ma60
+    cfg_no_ma = ScanFilterConfig(
+        pool="cached",
+        require_above_ma60=False,
+        require_fundamental=False,
+        require_chips=False,
+    )
+    # Restore close above 20d high
+    daily_k.loc[daily_k.index[-1], "close"] = 90.0  # below 60MA (~100), but let's test ma60 filtering specifically
+    service.repo.upsert_daily_k("2330", daily_k)
+    res_fail_ma60, _ = scan_single_stock(service, "2330", cfg_pass)
+    assert res_fail_ma60 is None
+

@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from app.api.analysis import router as analysis_router
 from app.api.scanner import router as scanner_router
 from app.api.stocks import router as stocks_router
+from app.api.watchlist import router as watchlist_router
 from app.config import get_finmind_token
 from app.data.exceptions import FinMindError
 from app.data.scheduler import start_scheduler, stop_scheduler
@@ -52,6 +53,7 @@ async def finmind_error_handler(request: Request, exc: FinMindError):
 app.include_router(stocks_router)
 app.include_router(analysis_router)
 app.include_router(scanner_router)
+app.include_router(watchlist_router)
 
 
 @app.get("/api/health")

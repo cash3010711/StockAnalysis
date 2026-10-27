@@ -168,3 +168,32 @@ def test_compute_bandwidth_percentile():
     pct2 = compute_bandwidth_percentile(bw2, window=5, min_periods=5)
     # At index 4: current is 0.1, which is lowest -> 1/5 = 0.20
     assert pytest.approx(pct2.iloc[4], rel=1e-6) == 0.20
+
+
+def test_compute_all_indicators_ma60_ma120():
+    """Verify compute_all_indicators calculates ma60 and ma120."""
+    n = 150
+    dates = pd.date_range("2026-01-01", periods=n, freq="D").strftime("%Y-%m-%d")
+    df = pd.DataFrame({
+        "date": dates,
+        "open": [100.0 + i for i in range(n)],
+        "high": [105.0 + i for i in range(n)],
+        "low": [95.0 + i for i in range(n)],
+        "close": [100.0 + i for i in range(n)],
+        "volume": [1000 + i * 10 for i in range(n)],
+    })
+
+    result = compute_all_indicators(df)
+    assert "ma60" in result.columns
+    assert "ma120" in result.columns
+
+    # Check NaN before window
+    assert pd.isna(result["ma60"].iloc[58])
+    assert pd.isna(result["ma120"].iloc[118])
+
+    # Check exact average at window
+    # close is 100, 101, ..., 159 (60 values) -> mean is 129.5
+    assert pytest.approx(result["ma60"].iloc[59], rel=1e-6) == float(df["close"].iloc[:60].mean())
+    # close for first 120 values -> mean is df["close"].iloc[:120].mean()
+    assert pytest.approx(result["ma120"].iloc[119], rel=1e-6) == float(df["close"].iloc[:120].mean())
+

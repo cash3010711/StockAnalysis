@@ -91,6 +91,8 @@ class OHLCVItemModel(BaseModel):
     ma5: Optional[float] = None
     ma10: Optional[float] = None
     ma20: Optional[float] = None
+    ma60: Optional[float] = None
+    ma120: Optional[float] = None
     bb_upper: Optional[float] = None
     bb_lower: Optional[float] = None
     bb_mid: Optional[float] = None
@@ -201,6 +203,8 @@ def analyze_stock(
             "ma5": round(float(row["ma5"]), 2) if pd.notna(row["ma5"]) else None,
             "ma10": round(float(row["ma10"]), 2) if pd.notna(row["ma10"]) else None,
             "ma20": round(float(row["ma20"]), 2) if pd.notna(row["ma20"]) else None,
+            "ma60": round(float(row["ma60"]), 2) if pd.notna(row["ma60"]) else None,
+            "ma120": round(float(row["ma120"]), 2) if pd.notna(row["ma120"]) else None,
             "bb_upper": round(float(row["bb_upper"]), 2) if pd.notna(row["bb_upper"]) else None,
             "bb_lower": round(float(row["bb_lower"]), 2) if pd.notna(row["bb_lower"]) else None,
             "bb_mid": round(float(row["bb_mid"]), 2) if pd.notna(row["bb_mid"]) else None,

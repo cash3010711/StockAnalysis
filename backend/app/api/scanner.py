@@ -47,6 +47,7 @@ class ScanRequestModel(BaseModel):
     sync_latest: bool = Field(default=False, description="是否向 FinMind 自動同步最新資料")
     require_fundamental: bool = Field(default=True, description="是否要求基本面合格")
     require_chips: bool = Field(default=True, description="是否要求籌碼面合格")
+    require_above_ma60: bool = Field(default=False, description="是否要求股價站上 60MA 季線")
     strategies: List[str] = Field(default_factory=list, description="欲篩選之技術策略清單（為空代表全選）")
     limit: Optional[int] = Field(default=None, description="限制掃描檔數上限")
     two_stage: bool = Field(default=False, description="是否啟用兩階段全市場快篩（以證交所總表初篩，再以 FinMind 深度同步）")
@@ -107,6 +108,7 @@ def _build_config(req: ScanRequestModel) -> ScanFilterConfig:
         sync_latest=req.sync_latest or req.two_stage,
         require_fundamental=req.require_fundamental,
         require_chips=req.require_chips,
+        require_above_ma60=req.require_above_ma60,
         strategies=req.strategies if req.strategies else list(params.ALL_STRATEGIES),
         limit=req.limit,
         two_stage=req.two_stage,
@@ -139,6 +141,7 @@ def get_scanner_options(
             "sync_latest": False,
             "require_fundamental": True,
             "require_chips": True,
+            "require_above_ma60": False,
             "strategies": list(params.ALL_STRATEGIES),
         },
     }

@@ -51,6 +51,8 @@ describe('StockChart Component', () => {
       ma5: null,
       ma10: null,
       ma20: null,
+      ma60: null,
+      ma120: null,
       bb_upper: null,
       bb_lower: null,
       bb_mid: null,
@@ -65,6 +67,8 @@ describe('StockChart Component', () => {
       ma5: 103.5,
       ma10: null,
       ma20: null,
+      ma60: null,
+      ma120: null,
       bb_upper: null,
       bb_lower: null,
       bb_mid: null,
@@ -79,6 +83,8 @@ describe('StockChart Component', () => {
       ma5: 112.0,
       ma10: 108.5,
       ma20: 105.0,
+      ma60: 101.5,
+      ma120: 98.0,
       bb_upper: 115.0,
       bb_lower: 95.0,
       bb_mid: 105.0,
@@ -120,15 +126,19 @@ describe('StockChart Component', () => {
   it('renders layer toggle buttons and initial legend with latest trading day values', () => {
     render(<StockChart ohlcv={mockOHLCV} />)
 
-    // Verify all toggle buttons exist with initial checked state [✓]
+    // Verify all toggle buttons exist with initial states
     const btnMa5 = screen.getByTestId('toggle-ma5')
     const btnMa10 = screen.getByTestId('toggle-ma10')
     const btnMa20 = screen.getByTestId('toggle-ma20')
+    const btnMa60 = screen.getByTestId('toggle-ma60')
+    const btnMa120 = screen.getByTestId('toggle-ma120')
     const btnBollinger = screen.getByTestId('toggle-bollinger')
 
     expect(btnMa5).toHaveTextContent('[✓] 5MA')
     expect(btnMa10).toHaveTextContent('[✓] 10MA')
     expect(btnMa20).toHaveTextContent('[✓] 20MA')
+    expect(btnMa60).toHaveTextContent('[ ] 60MA')
+    expect(btnMa120).toHaveTextContent('[ ] 120MA')
     expect(btnBollinger).toHaveTextContent('[✓] 布林通道')
 
     // Verify initial dynamic legend values match the latest day (2026-10-20)
@@ -136,6 +146,8 @@ describe('StockChart Component', () => {
     expect(screen.getByTestId('legend-ma5')).toHaveTextContent('5MA: 112.00')
     expect(screen.getByTestId('legend-ma10')).toHaveTextContent('10MA: 108.50')
     expect(screen.getByTestId('legend-ma20')).toHaveTextContent('20MA / 布林中軌: 105.00')
+    expect(screen.getByTestId('legend-ma60')).toHaveTextContent('60MA: 101.50')
+    expect(screen.getByTestId('legend-ma120')).toHaveTextContent('120MA: 98.00')
     expect(screen.getByTestId('legend-bb-upper')).toHaveTextContent('布林上軌: 115.00')
     expect(screen.getByTestId('legend-bb-lower')).toHaveTextContent('布林下軌: 95.00')
   })
@@ -145,6 +157,8 @@ describe('StockChart Component', () => {
 
     const btnBollinger = screen.getByTestId('toggle-bollinger')
     const btnMa5 = screen.getByTestId('toggle-ma5')
+    const btnMa60 = screen.getByTestId('toggle-ma60')
+    const btnMa120 = screen.getByTestId('toggle-ma120')
 
     // Toggle bollinger off
     fireEvent.click(btnBollinger)
@@ -153,6 +167,14 @@ describe('StockChart Component', () => {
     // Toggle MA5 off
     fireEvent.click(btnMa5)
     expect(btnMa5).toHaveTextContent('[ ] 5MA')
+
+    // Toggle MA60 on
+    fireEvent.click(btnMa60)
+    expect(btnMa60).toHaveTextContent('[✓] 60MA')
+
+    // Toggle MA120 on
+    fireEvent.click(btnMa120)
+    expect(btnMa120).toHaveTextContent('[✓] 120MA')
 
     // Toggle bollinger back on
     fireEvent.click(btnBollinger)
@@ -176,6 +198,8 @@ describe('StockChart Component', () => {
     expect(screen.getByTestId('legend-ma5')).toHaveTextContent('5MA: 103.50')
     expect(screen.getByTestId('legend-ma10')).toHaveTextContent('10MA: -')
     expect(screen.getByTestId('legend-ma20')).toHaveTextContent('20MA / 布林中軌: -')
+    expect(screen.getByTestId('legend-ma60')).toHaveTextContent('60MA: -')
+    expect(screen.getByTestId('legend-ma120')).toHaveTextContent('120MA: -')
     expect(screen.getByTestId('legend-bb-upper')).toHaveTextContent('布林上軌: -')
     expect(screen.getByTestId('legend-bb-lower')).toHaveTextContent('布林下軌: -')
 

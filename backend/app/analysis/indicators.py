@@ -190,6 +190,7 @@ def compute_all_indicators(df_k: pd.DataFrame) -> pd.DataFrame:
     df["ma10"] = compute_ma(close, 10)
     df["ma20"] = compute_ma(close, 20)
     df["ma60"] = compute_ma(close, 60)
+    df["ma120"] = compute_ma(close, 120)
 
     # ATR
     df["atr14"] = compute_atr(high, low, close, 14)

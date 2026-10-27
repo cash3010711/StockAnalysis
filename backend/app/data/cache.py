@@ -195,6 +195,18 @@ class CacheRepository:
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_nightly_plan_items_plan_id ON nightly_plan_items(plan_id)")
 
+            # 10. Watchlist
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS watchlist (
+                stock_id TEXT PRIMARY KEY,
+                stock_name TEXT NOT NULL,
+                added_date TEXT NOT NULL,
+                added_price REAL NOT NULL,
+                notes TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+
             conn.commit()
 
     # --- Fetch Log Operations ---
@@ -931,3 +943,61 @@ class CacheRepository:
             cursor.execute("DELETE FROM nightly_plans WHERE plan_id = ?", (plan_id,))
             conn.commit()
             return cursor.rowcount > 0
+
+    # --- Watchlist Operations ---
+
+    def add_watchlist_item(
+        self,
+        stock_id: str,
+        stock_name: str,
+        added_date: str,
+        added_price: float,
+        notes: str = "",
+    ) -> Dict[str, Any]:
+        """Add a stock to watchlist. Raises sqlite3.IntegrityError if stock_id already exists."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO watchlist (stock_id, stock_name, added_date, added_price, notes)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (stock_id.strip(), stock_name.strip(), added_date.strip(), float(added_price), notes.strip()),
+            )
+            conn.commit()
+        item = self.get_watchlist_item(stock_id.strip())
+        if item is None:
+            raise RuntimeError(f"Failed to retrieve watchlist item after insert: {stock_id}")
+        return item
+
+    def get_watchlist(self) -> List[Dict[str, Any]]:
+        """Get all stocks in watchlist ordered by created_at DESC."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM watchlist ORDER BY created_at DESC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    list_watchlist = get_watchlist
+
+    def get_watchlist_item(self, stock_id: str) -> Optional[Dict[str, Any]]:
+        """Get a single watchlist item by stock_id."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM watchlist WHERE stock_id = ?", (stock_id.strip(),))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def delete_watchlist_item(self, stock_id: str) -> bool:
+        """Remove a stock from watchlist."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM watchlist WHERE stock_id = ?", (stock_id.strip(),))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    remove_watchlist_item = delete_watchlist_item
+
+    def is_in_watchlist(self, stock_id: str) -> bool:
+        """Check if stock_id is in watchlist."""
+        return self.get_watchlist_item(stock_id.strip()) is not None
+

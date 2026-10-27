@@ -82,6 +82,8 @@ export interface OHLCVItem {
   ma5?: number | null
   ma10?: number | null
   ma20?: number | null
+  ma60?: number | null
+  ma120?: number | null
   bb_upper?: number | null
   bb_lower?: number | null
   bb_mid?: number | null
@@ -130,6 +132,7 @@ export interface ScannerOptionsDefaults {
   sync_latest: boolean
   require_fundamental: boolean
   require_chips: boolean
+  require_above_ma60?: boolean
   strategies: string[]
 }
 
@@ -147,10 +150,24 @@ export interface ScanRequest {
   sync_latest?: boolean
   require_fundamental?: boolean
   require_chips?: boolean
+  require_above_ma60?: boolean
   strategies?: string[]
   limit?: number | null
   two_stage?: boolean
   scan_date?: string | null
+}
+
+export interface WatchlistItem {
+  stock_id: string
+  stock_name: string
+  added_date: string
+  added_price: number
+  current_price?: number | null
+  current_date?: string | null
+  change_pct?: number | null
+  return_pct?: number | null
+  notes?: string
+  created_at?: string
 }
 
 export interface StrategyStatItem {
