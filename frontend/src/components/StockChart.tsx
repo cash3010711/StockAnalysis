@@ -16,10 +16,11 @@ import type {
   SeriesMarker,
   Time,
 } from 'lightweight-charts'
-import type { OHLCVItem, StrategyItem } from '../types/api'
+import type { InstitutionalItem, OHLCVItem, StrategyItem } from '../types/api'
 
 interface StockChartProps {
   ohlcv: OHLCVItem[]
+  institutional?: InstitutionalItem[]
   selectedStrategy?: StrategyItem | null
 }
 
@@ -30,12 +31,14 @@ const formatValue = (val: number | null | undefined): string => {
 
 export const StockChart: React.FC<StockChartProps> = ({
   ohlcv,
+  institutional,
   selectedStrategy,
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
+  const instSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const ma5SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
   const ma10SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
   const ma20SeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
@@ -45,6 +48,9 @@ export const StockChart: React.FC<StockChartProps> = ({
   const bbLowerSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null)
   const priceLinesRef = useRef<IPriceLine[]>([])
+
+  // Subpane mode: volume vs institutional
+  const [subPane, setSubPane] = useState<'volume' | 'institutional'>('volume')
 
   // Indicator layer toggle states
   const [visibleLayers, setVisibleLayers] = useState({
@@ -60,6 +66,11 @@ export const StockChart: React.FC<StockChartProps> = ({
   const [hoveredData, setHoveredData] = useState<OHLCVItem | null>(null)
   const latestDataRef = useRef<OHLCVItem | null>(null)
   const ohlcvMapRef = useRef<Map<string, OHLCVItem>>(new Map())
+
+  // Institutional hover data
+  const [hoveredInst, setHoveredInst] = useState<InstitutionalItem | null>(null)
+  const latestInstRef = useRef<InstitutionalItem | null>(null)
+  const instMapRef = useRef<Map<string, InstitutionalItem>>(new Map())
 
   // Initialize chart
   useEffect(() => {
@@ -130,6 +141,22 @@ export const StockChart: React.FC<StockChartProps> = ({
       },
     })
     volumeSeriesRef.current = volumeSeries
+
+    // Institutional net buy/sell histogram series (三大法人副圖)
+    const instSeries = chart.addSeries(HistogramSeries, {
+      priceFormat: {
+        type: 'volume',
+      },
+      priceScaleId: '', // overlay on same bottom subpane
+      visible: false,
+    })
+    instSeries.priceScale().applyOptions({
+      scaleMargins: {
+        top: 0.8,
+        bottom: 0,
+      },
+    })
+    instSeriesRef.current = instSeries
 
     // MA5 series (琥珀黃實線)
     const ma5Series = chart.addSeries(LineSeries, {
@@ -213,6 +240,7 @@ export const StockChart: React.FC<StockChartProps> = ({
         param.point.y < 0
       ) {
         setHoveredData(latestDataRef.current)
+        setHoveredInst(latestInstRef.current)
         return
       }
 
@@ -229,10 +257,18 @@ export const StockChart: React.FC<StockChartProps> = ({
       } else {
         setHoveredData(latestDataRef.current)
       }
+
+      const instItem = instMapRef.current.get(timeStr)
+      if (instItem) {
+        setHoveredInst(instItem)
+      } else {
+        setHoveredInst(latestInstRef.current)
+      }
     })
 
     const handleMouseLeave = () => {
       setHoveredData(latestDataRef.current)
+      setHoveredInst(latestInstRef.current)
     }
 
     container.addEventListener('mouseleave', handleMouseLeave)
@@ -256,6 +292,7 @@ export const StockChart: React.FC<StockChartProps> = ({
         chartRef.current = null
         candleSeriesRef.current = null
         volumeSeriesRef.current = null
+        instSeriesRef.current = null
         ma5SeriesRef.current = null
         ma10SeriesRef.current = null
         ma20SeriesRef.current = null
@@ -279,6 +316,40 @@ export const StockChart: React.FC<StockChartProps> = ({
     bbUpperSeriesRef.current?.applyOptions({ visible: visibleLayers.bollinger })
     bbLowerSeriesRef.current?.applyOptions({ visible: visibleLayers.bollinger })
   }, [visibleLayers])
+
+  // Apply subpane toggle options (成交量 vs 三大法人)
+  useEffect(() => {
+    volumeSeriesRef.current?.applyOptions({ visible: subPane === 'volume' })
+    instSeriesRef.current?.applyOptions({ visible: subPane === 'institutional' })
+  }, [subPane])
+
+  // Update Institutional data
+  useEffect(() => {
+    if (!institutional || institutional.length === 0) {
+      latestInstRef.current = null
+      instMapRef.current = new Map()
+      setHoveredInst(null)
+      return
+    }
+
+    const sortedInst = [...institutional].sort((a, b) => a.date.localeCompare(b.date))
+    const map = new Map<string, InstitutionalItem>()
+    sortedInst.forEach((item) => map.set(item.date, item))
+    instMapRef.current = map
+
+    const latest = sortedInst[sortedInst.length - 1]
+    latestInstRef.current = latest
+    setHoveredInst(latest)
+
+    if (instSeriesRef.current) {
+      const instData = sortedInst.map((item) => ({
+        time: item.date as Time,
+        value: item.total_net,
+        color: item.total_net >= 0 ? '#ef4444' : '#3b82f6',
+      }))
+      instSeriesRef.current.setData(instData)
+    }
+  }, [institutional])
 
   // Update OHLCV data
   useEffect(() => {
@@ -672,6 +743,50 @@ export const StockChart: React.FC<StockChartProps> = ({
           </button>
         </div>
 
+        {/* Subpane Controls (成交量 vs 三大法人) */}
+        <div
+          data-testid="subpane-controls"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <span style={{ fontWeight: 600, color: '#475569', marginRight: '4px' }}>副圖:</span>
+          <button
+            type="button"
+            data-testid="subpane-volume"
+            onClick={() => setSubPane('volume')}
+            style={{
+              cursor: 'pointer',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 500,
+              border: subPane === 'volume' ? '1px solid #2563eb' : '1px solid #cbd5e1',
+              background: subPane === 'volume' ? '#dbeafe' : '#ffffff',
+              color: subPane === 'volume' ? '#1d4ed8' : '#64748b',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {subPane === 'volume' ? '● 成交量' : '○ 成交量'}
+          </button>
+          <button
+            type="button"
+            data-testid="subpane-institutional"
+            onClick={() => setSubPane('institutional')}
+            style={{
+              cursor: 'pointer',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 500,
+              border: subPane === 'institutional' ? '1px solid #2563eb' : '1px solid #cbd5e1',
+              background: subPane === 'institutional' ? '#dbeafe' : '#ffffff',
+              color: subPane === 'institutional' ? '#1d4ed8' : '#64748b',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {subPane === 'institutional' ? '● 三大法人' : '○ 三大法人'}
+          </button>
+        </div>
+
         {/* Dynamic Legend */}
         <div
           data-testid="chart-legend"
@@ -760,6 +875,69 @@ export const StockChart: React.FC<StockChartProps> = ({
           >
             布林下軌: {formatValue(hoveredData?.bb_lower)}
           </span>
+
+          {/* Subpane Dynamic Display */}
+          {subPane === 'volume' ? (
+            <span
+              data-testid="legend-volume"
+              style={{
+                color: '#64748b',
+                fontWeight: 600,
+                borderLeft: '1px solid #cbd5e1',
+                paddingLeft: '8px',
+              }}
+            >
+              量: {hoveredData?.volume != null ? hoveredData.volume.toLocaleString() : '-'}
+            </span>
+          ) : (
+            <div
+              data-testid="institutional-legend"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                borderLeft: '1px solid #cbd5e1',
+                paddingLeft: '8px',
+              }}
+            >
+              <span
+                data-testid="legend-inst-foreign"
+                style={{
+                  color: (hoveredInst?.foreign_net ?? 0) >= 0 ? '#ef4444' : '#2563eb',
+                  fontWeight: 500,
+                }}
+              >
+                外資: {hoveredInst?.foreign_net != null ? `${hoveredInst.foreign_net > 0 ? '+' : ''}${hoveredInst.foreign_net.toFixed(1)}張` : '-'}
+              </span>
+              <span
+                data-testid="legend-inst-trust"
+                style={{
+                  color: (hoveredInst?.investment_trust_net ?? 0) >= 0 ? '#ef4444' : '#2563eb',
+                  fontWeight: 500,
+                }}
+              >
+                投信: {hoveredInst?.investment_trust_net != null ? `${hoveredInst.investment_trust_net > 0 ? '+' : ''}${hoveredInst.investment_trust_net.toFixed(1)}張` : '-'}
+              </span>
+              <span
+                data-testid="legend-inst-dealer"
+                style={{
+                  color: (hoveredInst?.dealer_net ?? 0) >= 0 ? '#ef4444' : '#2563eb',
+                  fontWeight: 500,
+                }}
+              >
+                自營: {hoveredInst?.dealer_net != null ? `${hoveredInst.dealer_net > 0 ? '+' : ''}${hoveredInst.dealer_net.toFixed(1)}張` : '-'}
+              </span>
+              <span
+                data-testid="legend-inst-total"
+                style={{
+                  color: (hoveredInst?.total_net ?? 0) >= 0 ? '#ef4444' : '#2563eb',
+                  fontWeight: 700,
+                }}
+              >
+                合計: {hoveredInst?.total_net != null ? `${hoveredInst.total_net > 0 ? '+' : ''}${hoveredInst.total_net.toFixed(1)}張` : '-'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

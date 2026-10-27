@@ -164,4 +164,53 @@ describe('StrategyTable component', () => {
     fireEvent.click(screen.getByTestId('strategy-row-MACD 金叉'))
     expect(handleSelect).toHaveBeenCalledWith('MACD 金叉')
   })
+
+  it('expands equity curve card and renders chart on row click, collapses on second click', () => {
+    const strategiesWithCurves: StrategyItem[] = [
+      {
+        ...mockStrategies[0],
+        three_layer_stats: {
+          ...mockStrategies[0].three_layer_stats!,
+          equity_curve: [
+            { date: '2024-01-02', equity: 1.0, drawdown: 0.0 },
+            { date: '2024-01-10', equity: 1.08, drawdown: 0.0 },
+            { date: '2024-01-20', equity: 1.15, drawdown: 0.0 },
+          ],
+        },
+        tech_only_stats: {
+          ...mockStrategies[0].tech_only_stats!,
+          equity_curve: [
+            { date: '2024-01-02', equity: 1.0, drawdown: 0.0 },
+            { date: '2024-01-15', equity: 0.98, drawdown: 0.02 },
+            { date: '2024-01-25', equity: 1.04, drawdown: 0.0 },
+          ],
+        },
+      },
+      mockStrategies[2], // MACD without trades
+    ]
+
+    render(<StrategyTable strategies={strategiesWithCurves} />)
+
+    // Initially card should not be visible
+    expect(screen.queryByTestId('equity-curve-card-均線拉回 20MA')).not.toBeInTheDocument()
+
+    // Click to expand
+    fireEvent.click(screen.getByTestId('strategy-row-均線拉回 20MA'))
+
+    // Now card is visible with chart and metrics
+    expect(screen.getByTestId('equity-curve-card-均線拉回 20MA')).toBeInTheDocument()
+    expect(screen.getByTestId('equity-curve-chart')).toBeInTheDocument()
+    expect(screen.getByTestId('equity-curve-svg')).toBeInTheDocument()
+    expect(screen.getByText(/三層檢驗風控回測/)).toBeInTheDocument()
+    expect(screen.getByText(/純技術面回測/)).toBeInTheDocument()
+
+    // Click again to collapse
+    fireEvent.click(screen.getByTestId('strategy-row-均線拉回 20MA'))
+    expect(screen.queryByTestId('equity-curve-card-均線拉回 20MA')).not.toBeInTheDocument()
+
+    // Click MACD row without trades
+    fireEvent.click(screen.getByTestId('strategy-row-MACD 金叉'))
+    expect(screen.getByTestId('equity-curve-card-MACD 金叉')).toBeInTheDocument()
+    expect(screen.getByTestId('no-equity-curve')).toHaveTextContent('歷史交易資料不足')
+  })
 })

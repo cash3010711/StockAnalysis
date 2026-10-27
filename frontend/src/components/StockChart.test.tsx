@@ -248,9 +248,81 @@ describe('StockChart Component', () => {
     expect(screen.getByTestId('legend-bb-lower')).toHaveTextContent('布林下軌: -')
   })
 
+  const mockInstitutional = [
+    {
+      date: '2026-10-01',
+      foreign_net: 100.5,
+      investment_trust_net: 50.0,
+      dealer_net: -10.5,
+      total_net: 140.0,
+    },
+    {
+      date: '2026-10-05',
+      foreign_net: -80.0,
+      investment_trust_net: 20.0,
+      dealer_net: -5.0,
+      total_net: -65.0,
+    },
+    {
+      date: '2026-10-20',
+      foreign_net: 250.0,
+      investment_trust_net: 120.0,
+      dealer_net: 30.0,
+      total_net: 400.0,
+    },
+  ]
+
   it('renders with selected strategy', () => {
     render(<StockChart ohlcv={mockOHLCV} selectedStrategy={mockStrategy} />)
 
     expect(screen.getByText('(當前策略：均線拉回 20MA)')).toBeInTheDocument()
+  })
+
+  it('supports switching between volume and institutional subpanes', () => {
+    render(
+      <StockChart
+        ohlcv={mockOHLCV}
+        institutional={mockInstitutional}
+        selectedStrategy={mockStrategy}
+      />
+    )
+
+    const btnVolume = screen.getByTestId('subpane-volume')
+    const btnInst = screen.getByTestId('subpane-institutional')
+
+    // Default is volume
+    expect(btnVolume).toHaveTextContent('● 成交量')
+    expect(btnInst).toHaveTextContent('○ 三大法人')
+    expect(screen.getByTestId('legend-volume')).toHaveTextContent('量: 2,000')
+    expect(screen.queryByTestId('institutional-legend')).not.toBeInTheDocument()
+
+    // Switch to institutional
+    fireEvent.click(btnInst)
+    expect(btnVolume).toHaveTextContent('○ 成交量')
+    expect(btnInst).toHaveTextContent('● 三大法人')
+    expect(screen.queryByTestId('legend-volume')).not.toBeInTheDocument()
+    expect(screen.getByTestId('institutional-legend')).toBeInTheDocument()
+    expect(screen.getByTestId('legend-inst-foreign')).toHaveTextContent('外資: +250.0張')
+    expect(screen.getByTestId('legend-inst-trust')).toHaveTextContent('投信: +120.0張')
+    expect(screen.getByTestId('legend-inst-dealer')).toHaveTextContent('自營: +30.0張')
+    expect(screen.getByTestId('legend-inst-total')).toHaveTextContent('合計: +400.0張')
+
+    // Crosshair move to 2026-10-05
+    act(() => {
+      crosshairMoveListener?.({
+        time: '2026-10-05',
+        point: { x: 150, y: 200 },
+      })
+    })
+
+    expect(screen.getByTestId('legend-inst-foreign')).toHaveTextContent('外資: -80.0張')
+    expect(screen.getByTestId('legend-inst-trust')).toHaveTextContent('投信: +20.0張')
+    expect(screen.getByTestId('legend-inst-dealer')).toHaveTextContent('自營: -5.0張')
+    expect(screen.getByTestId('legend-inst-total')).toHaveTextContent('合計: -65.0張')
+
+    // Switch back to volume
+    fireEvent.click(btnVolume)
+    expect(screen.getByTestId('legend-volume')).toBeInTheDocument()
+    expect(screen.queryByTestId('institutional-legend')).not.toBeInTheDocument()
   })
 })

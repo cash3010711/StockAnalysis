@@ -36,6 +36,12 @@ export interface Trade {
   is_win: boolean
 }
 
+export interface EquityPoint {
+  date: string
+  equity: number
+  drawdown: number
+}
+
 export interface BacktestStats {
   total_trades: number
   win_trades: number
@@ -52,6 +58,7 @@ export interface BacktestStats {
   insufficient_sample: boolean
   has_trades: boolean
   status_text?: string | null
+  equity_curve?: EquityPoint[]
 }
 
 export interface StrategyItem {
@@ -70,6 +77,16 @@ export interface StrategyItem {
   tech_only_stats: BacktestStats | null
   three_layer_trades: Trade[]
   tech_only_trades: Trade[]
+  three_layer_equity_curve?: EquityPoint[]
+  tech_only_equity_curve?: EquityPoint[]
+}
+
+export interface InstitutionalItem {
+  date: string
+  foreign_net: number
+  investment_trust_net: number
+  dealer_net: number
+  total_net: number
 }
 
 export interface OHLCVItem {
@@ -99,6 +116,7 @@ export interface AnalysisResponse {
   chips: ChipsSummary
   strategies: StrategyItem[]
   ohlcv: OHLCVItem[]
+  institutional?: InstitutionalItem[]
 }
 
 export interface ApiErrorData {

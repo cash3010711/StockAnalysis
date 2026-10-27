@@ -45,6 +45,12 @@ class TradeModel(BaseModel):
     is_win: bool
 
 
+class EquityPointModel(BaseModel):
+    date: str
+    equity: float
+    drawdown: float
+
+
 class BacktestStatsModel(BaseModel):
     total_trades: int
     win_trades: int
@@ -61,6 +67,7 @@ class BacktestStatsModel(BaseModel):
     insufficient_sample: bool
     has_trades: bool
     status_text: Optional[str] = None
+    equity_curve: List[EquityPointModel] = []
 
 
 class StrategyItemModel(BaseModel):
@@ -79,6 +86,16 @@ class StrategyItemModel(BaseModel):
     tech_only_stats: Optional[BacktestStatsModel] = None
     three_layer_trades: List[TradeModel] = []
     tech_only_trades: List[TradeModel] = []
+    three_layer_equity_curve: List[EquityPointModel] = []
+    tech_only_equity_curve: List[EquityPointModel] = []
+
+
+class InstitutionalItemModel(BaseModel):
+    date: str
+    foreign_net: float
+    investment_trust_net: float
+    dealer_net: float
+    total_net: float
 
 
 class OHLCVItemModel(BaseModel):
@@ -108,6 +125,8 @@ class AnalysisResponse(BaseModel):
     chips: ChipsSummaryModel
     strategies: List[StrategyItemModel]
     ohlcv: List[OHLCVItemModel]
+    institutional: List[InstitutionalItemModel] = []
+
 
 
 router = APIRouter(prefix="/api", tags=["analysis"])
@@ -188,6 +207,8 @@ def analyze_stock(
             "tech_only_stats": bt.tech_only.to_dict() if bt and bt.tech_only else None,
             "three_layer_trades": [t.to_dict() for t in bt.three_layer_trades] if bt else [],
             "tech_only_trades": [t.to_dict() for t in bt.tech_only_trades] if bt else [],
+            "three_layer_equity_curve": bt.three_layer.equity_curve if bt and bt.three_layer else [],
+            "tech_only_equity_curve": bt.tech_only.equity_curve if bt and bt.tech_only else [],
         })
 
     # 3. OHLCV data for charting
@@ -212,6 +233,33 @@ def analyze_stock(
         for _, row in df_indicators.iterrows()
     ]
 
+    # 4. Institutional investors net buy sequence (recent 30 trading days)
+    inst_df = data.get("institutional_investors", pd.DataFrame())
+    institutional_list: List[Dict[str, Any]] = []
+    if not inst_df.empty:
+        inst_sorted = inst_df.sort_values("date").reset_index(drop=True)
+        recent_30 = inst_sorted.tail(30)
+        for _, row in recent_30.iterrows():
+            f_buy = float(row.get("foreign_buy") or 0.0)
+            f_sell = float(row.get("foreign_sell") or 0.0)
+            t_buy = float(row.get("investment_trust_buy") or 0.0)
+            t_sell = float(row.get("investment_trust_sell") or 0.0)
+            d_buy = float(row.get("dealer_buy") or 0.0)
+            d_sell = float(row.get("dealer_sell") or 0.0)
+
+            f_net = round((f_buy - f_sell) / 1000.0, 1)
+            t_net = round((t_buy - t_sell) / 1000.0, 1)
+            d_net = round((d_buy - d_sell) / 1000.0, 1)
+            tot_net = round(f_net + t_net + d_net, 1)
+
+            institutional_list.append({
+                "date": str(row["date"]),
+                "foreign_net": f_net,
+                "investment_trust_net": t_net,
+                "dealer_net": d_net,
+                "total_net": tot_net,
+            })
+
     stock_name = service.get_stock_name(sid)
 
     return {
@@ -224,4 +272,5 @@ def analyze_stock(
         "chips": asdict(today_analysis.chips),
         "strategies": combined_strategies,
         "ohlcv": ohlcv,
+        "institutional": institutional_list,
     }

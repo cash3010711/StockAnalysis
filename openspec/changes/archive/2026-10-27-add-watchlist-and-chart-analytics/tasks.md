@@ -12,10 +12,10 @@
 
 ## 3. 三大法人籌碼副圖與累積權益曲線 (Institutional Pane & Equity Curve)
 
-- [ ] 3.1 擴充 `backend/app/api/analysis.py` 回傳近 30 日三大法人淨買賣超序列；在 `StockChart.tsx` 實作三大法人買賣超副圖與成交量副圖切換控制，確保游標懸停即時同步對齊；執行 `cd frontend; npm test -- --run; cd ..` 驗證切換互動。
-- [ ] 3.2 擴充 `backend/app/analysis/backtest.py` 與 `assembler.py` 產出策略回測累積權益（`equity_curve`）與回撤序列；在 `frontend/src/components/StrategyTable.tsx` 實作點擊展開策略累積權益與最大回撤走勢圖卡片；執行 `cd frontend; npm test -- --run; cd ..` 驗證展開圖表。
+- [x] 3.1 擴充 `backend/app/api/analysis.py` 回傳近 30 日三大法人淨買賣超序列；在 `StockChart.tsx` 實作三大法人買賣超副圖與成交量副圖切換控制，確保游標懸停即時同步對齊；執行 `cd frontend; npm test -- --run; cd ..` 驗證切換互動。
+- [x] 3.2 擴充 `backend/app/analysis/backtest.py` 與 `assembler.py` 產出策略回測累積權益（`equity_curve`）與回撤序列；在 `frontend/src/components/StrategyTable.tsx` 實作點擊展開策略累積權益與最大回撤走勢圖卡片；執行 `cd frontend; npm test -- --run; cd ..` 驗證展開圖表。
 
 ## 4. 前端自選股管理面板與端對端整合 (Watchlist View & Integration)
 
-- [ ] 4.1 建立 `frontend/src/components/WatchlistView.tsx` 自選股管理面板，於頂部導覽列新增「自選股追蹤」分頁，並在個股分析頂部加入 ⭐ 收藏/取消收藏按鈕與 API 串接；執行 `cd frontend; npm run build; npm test -- --run; cd ..` 驗證型別與畫面運作。
-- [ ] 4.2 執行後端全套 pytest 與前端全套 vitest 回歸測試，確認個股深度分析、全市場選股、自選股追蹤三者分頁狀態保持、圖表切換流暢且無回歸錯誤。
+- [x] 4.1 建立 `frontend/src/components/WatchlistView.tsx` 自選股管理面板，於頂部導覽列新增「自選股追蹤」分頁，並在個股分析頂部加入 ⭐ 收藏/取消收藏按鈕與 API 串接；執行 `cd frontend; npm run build; npm test -- --run; cd ..` 驗證型別與畫面運作。
+- [x] 4.2 執行後端全套 pytest 與前端全套 vitest 回歸測試，確認個股深度分析、全市場選股、自選股追蹤三者分頁狀態保持、圖表切換流暢且無回歸錯誤。

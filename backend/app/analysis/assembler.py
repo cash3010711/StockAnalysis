@@ -15,6 +15,7 @@ from app.analysis.strategies import (
     evaluate_all_strategies,
     get_strategy_trigger_description,
 )
+from app.backtest.stats import BacktestStats, EquityPoint
 
 
 @dataclass

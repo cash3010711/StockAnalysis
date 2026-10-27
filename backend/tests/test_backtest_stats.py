@@ -121,3 +121,23 @@ def test_max_drawdown_calculation():
     # Peak is 1.10, trough is 0.9405 -> drawdown is (1.10 - 0.9405)/1.10 = 0.145
     assert round(stats.max_drawdown, 4) == 0.1450
     assert stats.max_drawdown_pct == 14.50
+
+
+def test_equity_curve_generation():
+    """Verify equity curve points and initial baseline."""
+    trades = [
+        _make_dummy_trade(is_win=True, net_return=0.10),
+        _make_dummy_trade(is_win=False, net_return=-0.05),
+    ]
+    stats = compute_stats(trades)
+    assert len(stats.equity_curve) == 3
+    # Initial point
+    assert stats.equity_curve[0]["equity"] == 1.0
+    assert stats.equity_curve[0]["drawdown"] == 0.0
+    # After trade 1
+    assert stats.equity_curve[1]["equity"] == 1.10
+    assert stats.equity_curve[1]["drawdown"] == 0.0
+    # After trade 2
+    assert stats.equity_curve[2]["equity"] == 1.045
+    assert round(stats.equity_curve[2]["drawdown"], 4) == 0.05
+

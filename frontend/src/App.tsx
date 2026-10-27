@@ -1,5 +1,10 @@
-import { useState } from 'react'
-import { fetchAnalysis } from './api/client'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  addToWatchlist,
+  fetchAnalysis,
+  fetchWatchlist,
+  removeFromWatchlist,
+} from './api/client'
 import { AlertBanner } from './components/AlertBanner'
 import { Disclaimer } from './components/Disclaimer'
 import { EvaluationHeader } from './components/EvaluationHeader'
@@ -8,16 +13,78 @@ import { MarketScanner } from './components/MarketScanner'
 import { SearchBox } from './components/SearchBox'
 import { StockChart } from './components/StockChart'
 import { StrategyTable } from './components/StrategyTable'
+import { WatchlistView } from './components/WatchlistView'
 import { ApiError } from './types/api'
-import type { AnalysisResponse } from './types/api'
+import type { AnalysisResponse, WatchlistItem } from './types/api'
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'single' | 'scanner'>('single')
+  const [activeTab, setActiveTab] = useState<'single' | 'scanner' | 'watchlist'>('single')
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null)
   const [selectedStrategyName, setSelectedStrategyName] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<Error | ApiError | null>(null)
   const [fromScanner, setFromScanner] = useState<boolean>(false)
+
+  // Watchlist state
+  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([])
+  const [watchlistLoading, setWatchlistLoading] = useState<boolean>(false)
+  const [watchlistError, setWatchlistError] = useState<string | null>(null)
+
+  const loadWatchlist = useCallback(async () => {
+    try {
+      setWatchlistLoading(true)
+      setWatchlistError(null)
+      const items = await fetchWatchlist()
+      setWatchlist(items)
+    } catch {
+      setWatchlistError('載入自選股失敗')
+    } finally {
+      setWatchlistLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadWatchlist()
+  }, [loadWatchlist])
+
+  const handleToggleWatchlist = async (stockId: string) => {
+    const existing = watchlist.find((item) => item.stock_id === stockId)
+    if (existing) {
+      try {
+        setWatchlistLoading(true)
+        await removeFromWatchlist(stockId)
+        setWatchlist((prev) => prev.filter((item) => item.stock_id !== stockId))
+      } catch {
+        // ignore
+      } finally {
+        setWatchlistLoading(false)
+      }
+    } else {
+      try {
+        setWatchlistLoading(true)
+        const lastClose = analysis?.ohlcv?.[analysis.ohlcv.length - 1]?.close
+        const added = await addToWatchlist({
+          stock_id: stockId,
+          stock_name: analysis?.stock_name,
+          added_price: lastClose,
+        })
+        setWatchlist((prev) => [added, ...prev.filter((p) => p.stock_id !== stockId)])
+      } catch {
+        // ignore
+      } finally {
+        setWatchlistLoading(false)
+      }
+    }
+  }
+
+  const handleRemoveFromWatchlist = async (stockId: string) => {
+    try {
+      await removeFromWatchlist(stockId)
+      setWatchlist((prev) => prev.filter((item) => item.stock_id !== stockId))
+    } catch {
+      // ignore
+    }
+  }
 
   const handleSelectStock = async (stockId: string) => {
     setLoading(true)
@@ -139,6 +206,24 @@ export function App() {
               >
                 全市場選股掃描
               </button>
+              <button
+                type="button"
+                data-testid="tab-watchlist"
+                onClick={() => setActiveTab('watchlist')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: activeTab === 'watchlist' ? '#2563eb' : '#f1f5f9',
+                  color: activeTab === 'watchlist' ? '#ffffff' : '#475569',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                自選股追蹤 {watchlist.length > 0 && `(${watchlist.length})`}
+              </button>
             </div>
           </div>
 
@@ -245,6 +330,9 @@ export function App() {
                 stockId={analysis.stock_id}
                 stockName={analysis.stock_name}
                 evaluationDate={analysis.evaluation_date}
+                isInWatchlist={watchlist.some((w) => w.stock_id === analysis.stock_id)}
+                onToggleWatchlist={handleToggleWatchlist}
+                isWatchlistLoading={watchlistLoading}
               />
 
               {/* 2. Fundamental and Chips Layer Summaries */}
@@ -263,6 +351,7 @@ export function App() {
               {/* 4. Candlestick Chart with Volume, Markers and Price Lines */}
               <StockChart
                 ohlcv={analysis.ohlcv}
+                institutional={analysis.institutional}
                 selectedStrategy={selectedStrategy}
               />
             </div>
@@ -275,6 +364,24 @@ export function App() {
           style={{ display: activeTab === 'scanner' ? 'block' : 'none' }}
         >
           <MarketScanner onSelectStock={handleScannerSelectStock} />
+        </div>
+
+        {/* Tab 3: Watchlist Tracking (Keep-Alive) */}
+        <div
+          data-testid="watchlist-view"
+          style={{ display: activeTab === 'watchlist' ? 'block' : 'none' }}
+        >
+          <WatchlistView
+            watchlist={watchlist}
+            loading={watchlistLoading}
+            error={watchlistError}
+            onSelectStock={(id) => {
+              setActiveTab('single')
+              handleSelectStock(id)
+            }}
+            onRemove={handleRemoveFromWatchlist}
+            onRefresh={loadWatchlist}
+          />
         </div>
       </main>
 

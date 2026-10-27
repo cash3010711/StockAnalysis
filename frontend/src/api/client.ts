@@ -7,6 +7,7 @@ import type {
   ScanRunResponse,
   ScanStreamEvent,
   StockLookupItem,
+  WatchlistItem,
 } from '../types/api'
 
 export async function searchStocks(
@@ -168,3 +169,75 @@ export async function streamMarketScan(
     throw err
   }
 }
+
+export async function fetchWatchlist(
+  signal?: AbortSignal
+): Promise<WatchlistItem[]> {
+  const res = await fetch('/api/watchlist', { signal })
+  if (!res.ok) {
+    let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
+    try {
+      errorData = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, errorData)
+  }
+  return await res.json()
+}
+
+export async function addToWatchlist(
+  payload: {
+    stock_id: string
+    stock_name?: string
+    added_date?: string
+    added_price?: number
+    notes?: string
+  },
+  signal?: AbortSignal
+): Promise<WatchlistItem> {
+  const res = await fetch('/api/watchlist', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+    signal,
+  })
+
+  if (!res.ok) {
+    let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
+    try {
+      errorData = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, errorData)
+  }
+
+  return await res.json()
+}
+
+export async function removeFromWatchlist(
+  stockId: string,
+  signal?: AbortSignal
+): Promise<{ success: boolean; stock_id: string; message: string }> {
+  const trimmed = stockId.trim()
+  const res = await fetch(`/api/watchlist/${encodeURIComponent(trimmed)}`, {
+    method: 'DELETE',
+    signal,
+  })
+
+  if (!res.ok) {
+    let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
+    try {
+      errorData = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, errorData)
+  }
+
+  return await res.json()
+}
+

@@ -10,11 +10,24 @@ Computes metrics:
 - Status display text (e.g. '無交易', '樣本不足，參考性低')
 """
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
 from app.analysis import params
 from app.backtest.engine import Trade
+
+
+@dataclass
+class EquityPoint:
+    """A single point in cumulative equity and drawdown curve."""
+
+    date: str
+    equity: float
+    drawdown: float
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert point to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -36,6 +49,7 @@ class BacktestStats:
     insufficient_sample: bool
     has_trades: bool
     status_text: Optional[str] = None
+    equity_curve: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert statistics to dictionary."""
@@ -90,19 +104,36 @@ def compute_stats(
     holding_days_list = [t.holding_days for t in trades]
     avg_holding_days = round(sum(holding_days_list) / total_trades, 1)
 
-    # Calculate max drawdown on trade-by-trade compounding equity curve
+    # Calculate max drawdown and build equity curve on trade-by-trade compounding equity
     equity = 1.0
     peak = 1.0
     max_dd = 0.0
+    equity_curve: List[Dict[str, Any]] = []
 
-    for r in returns:
-        equity *= 1.0 + r
+    if total_trades > 0:
+        first_entry = trades[0].entry_date
+        equity_curve.append({
+            "date": first_entry,
+            "equity": 1.0,
+            "drawdown": 0.0,
+        })
+
+    for t in trades:
+        equity *= 1.0 + t.net_return
         if equity > peak:
             peak = equity
         if peak > 0:
             dd = (peak - equity) / peak
             if dd > max_dd:
                 max_dd = dd
+        else:
+            dd = 0.0
+
+        equity_curve.append({
+            "date": t.exit_date,
+            "equity": round(equity, 4),
+            "drawdown": round(dd, 4),
+        })
 
     max_drawdown = round(max_dd, 4)
     max_drawdown_pct = round(max_dd * 100, 2)
@@ -126,4 +157,5 @@ def compute_stats(
         insufficient_sample=insufficient_sample,
         has_trades=True,
         status_text=status_text,
+        equity_curve=equity_curve,
     )

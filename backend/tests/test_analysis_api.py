@@ -227,6 +227,8 @@ def test_api_analysis_success_structure():
             assert "expected_value" in tl
             assert "max_drawdown" in tl
             assert "insufficient_sample" in tl
+            assert "equity_curve" in tl
+            assert isinstance(tl["equity_curve"], list)
 
             # Tech-only stats
             to = strat["tech_only_stats"]
@@ -258,6 +260,17 @@ def test_api_analysis_success_structure():
         assert "close" in first_bar
         assert "volume" in first_bar
         assert first_bar["high"] >= first_bar["low"]
+
+        # Institutional sequence (recent 30 days)
+        institutional = data["institutional"]
+        assert isinstance(institutional, list)
+        assert len(institutional) == 30
+        first_inst = institutional[0]
+        assert "date" in first_inst
+        assert "foreign_net" in first_inst
+        assert "investment_trust_net" in first_inst
+        assert "dealer_net" in first_inst
+        assert "total_net" in first_inst
     finally:
         app.dependency_overrides.clear()
 

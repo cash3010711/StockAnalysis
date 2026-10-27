@@ -156,6 +156,12 @@ describe('App Component Integration', () => {
   it('renders welcome box initially and updates with analysis results on selecting stock', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
       const urlStr = String(url)
+      if (urlStr.includes('/api/watchlist')) {
+        return {
+          ok: true,
+          json: async () => [],
+        } as Response
+      }
       if (urlStr.includes('/api/stocks')) {
         return {
           ok: true,
@@ -166,6 +172,12 @@ describe('App Component Integration', () => {
         return {
           ok: true,
           json: async () => mockAnalysis,
+        } as Response
+      }
+      if (urlStr.includes('/api/watchlist')) {
+        return {
+          ok: true,
+          json: async () => [],
         } as Response
       }
       if (urlStr.includes('/api/scanner/options')) {
@@ -208,6 +220,7 @@ describe('App Component Integration', () => {
     // Check evaluation header
     expect(screen.getByTestId('evaluation-header')).toBeInTheDocument()
     expect(screen.getByText('2330 台積電')).toBeInTheDocument()
+    expect(screen.getByTestId('watchlist-toggle-btn')).toHaveTextContent('加自選')
     expect(screen.getByTestId('eval-date-text')).toHaveTextContent(
       '評估日：2026-10-21（收盤後資料）'
     )
@@ -237,6 +250,12 @@ describe('App Component Integration', () => {
   it('switches between single stock tab and market scanner tab with keep-alive state', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
       const urlStr = String(url)
+      if (urlStr.includes('/api/watchlist')) {
+        return {
+          ok: true,
+          json: async () => [],
+        } as Response
+      }
       if (urlStr.includes('/api/scanner/options')) {
         return {
           ok: true,
@@ -260,10 +279,20 @@ describe('App Component Integration', () => {
 
     const singleView = screen.getByTestId('single-stock-view')
     const scannerView = screen.getByTestId('market-scanner-view')
+    const watchlistView = screen.getByTestId('watchlist-view')
+    const tabWatchlist = screen.getByTestId('tab-watchlist')
 
     // Single view visible by default
     expect(singleView).toBeVisible()
     expect(scannerView).not.toBeVisible()
+
+    // Switch to watchlist tab
+    fireEvent.click(tabWatchlist)
+
+    expect(singleView).not.toBeVisible()
+    expect(scannerView).not.toBeVisible()
+    expect(watchlistView).toBeVisible()
+    expect(screen.getByTestId('watchlist-empty')).toBeInTheDocument()
 
     // Switch to scanner tab
     const tabScanner = screen.getByTestId('tab-scanner')
@@ -279,5 +308,13 @@ describe('App Component Integration', () => {
 
     expect(singleView).toBeVisible()
     expect(scannerView).not.toBeVisible()
+
+    // Switch to watchlist tab
+    fireEvent.click(tabWatchlist)
+
+    expect(singleView).not.toBeVisible()
+    expect(scannerView).not.toBeVisible()
+    expect(watchlistView).toBeVisible()
+    expect(screen.getByTestId('watchlist-empty')).toBeInTheDocument()
   })
 })
