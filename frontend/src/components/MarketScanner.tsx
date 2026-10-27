@@ -55,7 +55,6 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({
 
   // Option lists
   const [pools, setPools] = useState<ScanOptionPool[]>(DEFAULT_POOLS)
-  const [industries, setIndustries] = useState<string[]>([])
   const [strategiesList, setStrategiesList] = useState<string[]>(DEFAULT_STRATEGIES)
   const [cachedCount, setCachedCount] = useState<number>(0)
 
@@ -101,7 +100,6 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({
       .then((opts) => {
         if (ignore) return
         if (opts.pools && opts.pools.length > 0) setPools(opts.pools)
-        if (opts.industries && opts.industries.length > 0) setIndustries(opts.industries)
         if (opts.strategies && opts.strategies.length > 0) {
           setStrategiesList(opts.strategies)
           setSelectedStrategies(opts.strategies)

@@ -7,7 +7,9 @@ import type {
   ScanRunResponse,
   ScanStreamEvent,
   StockLookupItem,
+  WatchlistGroup,
   WatchlistItem,
+  WatchlistSyncResponse,
 } from '../types/api'
 
 export async function searchStocks(
@@ -171,9 +173,11 @@ export async function streamMarketScan(
 }
 
 export async function fetchWatchlist(
+  groupId?: number,
   signal?: AbortSignal
 ): Promise<WatchlistItem[]> {
-  const res = await fetch('/api/watchlist', { signal })
+  const url = groupId != null ? `/api/watchlist?group_id=${groupId}` : '/api/watchlist'
+  const res = await fetch(url, { signal })
   if (!res.ok) {
     let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
     try {
@@ -183,6 +187,143 @@ export async function fetchWatchlist(
     }
     throw new ApiError(res.status, errorData)
   }
+  return await res.json()
+}
+
+export async function fetchWatchlistGroups(
+  signal?: AbortSignal
+): Promise<WatchlistGroup[]> {
+  const res = await fetch('/api/watchlist/groups', { signal })
+  if (!res.ok) {
+    let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
+    try {
+      errorData = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, errorData)
+  }
+  return await res.json()
+}
+
+export async function createWatchlistGroup(
+  name: string,
+  signal?: AbortSignal
+): Promise<WatchlistGroup> {
+  const res = await fetch('/api/watchlist/groups', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+    signal,
+  })
+
+  if (!res.ok) {
+    let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
+    try {
+      errorData = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, errorData)
+  }
+
+  return await res.json()
+}
+
+export async function deleteWatchlistGroup(
+  groupId: number,
+  signal?: AbortSignal
+): Promise<{ success: boolean; group_id: number; message: string }> {
+  const res = await fetch(`/api/watchlist/groups/${groupId}`, {
+    method: 'DELETE',
+    signal,
+  })
+
+  if (!res.ok) {
+    let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
+    try {
+      errorData = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, errorData)
+  }
+
+  return await res.json()
+}
+
+export async function updateStockGroups(
+  stockId: string,
+  groupIds: number[],
+  signal?: AbortSignal
+): Promise<{ success: boolean; stock_id: string; group_ids: number[] }> {
+  const trimmed = stockId.trim()
+  const res = await fetch(`/api/watchlist/${encodeURIComponent(trimmed)}/groups`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ group_ids: groupIds }),
+    signal,
+  })
+
+  if (!res.ok) {
+    let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
+    try {
+      errorData = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, errorData)
+  }
+
+  return await res.json()
+}
+
+export async function removeStockFromGroup(
+  stockId: string,
+  groupId: number,
+  signal?: AbortSignal
+): Promise<{ success: boolean; stock_id: string; group_id: number; message: string }> {
+  const trimmed = stockId.trim()
+  const res = await fetch(`/api/watchlist/${encodeURIComponent(trimmed)}/groups/${groupId}`, {
+    method: 'DELETE',
+    signal,
+  })
+
+  if (!res.ok) {
+    let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
+    try {
+      errorData = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, errorData)
+  }
+
+  return await res.json()
+}
+
+export async function syncWatchlist(
+  signal?: AbortSignal
+): Promise<WatchlistSyncResponse> {
+  const res = await fetch('/api/watchlist/sync', {
+    method: 'POST',
+    signal,
+  })
+
+  if (!res.ok) {
+    let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
+    try {
+      errorData = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, errorData)
+  }
+
   return await res.json()
 }
 

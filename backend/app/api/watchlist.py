@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 import pandas as pd
 from pydantic import BaseModel, Field
 
+from app.analysis.assembler import assemble_today_analysis
 from app.api.stocks import get_data_service
 from app.data.service import DataService
 
@@ -37,6 +38,11 @@ class WatchlistItemModel(BaseModel):
     notes: Optional[str] = ""
     created_at: Optional[str] = None
     groups: List[WatchlistGroupModel] = Field(default_factory=list)
+    suggested_strategy: Optional[str] = None
+    entry_price: Optional[float] = None
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
+    trigger_condition: Optional[str] = None
 
 
 class WatchlistCreateRequest(BaseModel):
@@ -82,6 +88,55 @@ def _enrich_watchlist_item(item: Dict[str, Any], service: DataService) -> Watchl
         for g in groups_raw
     ]
 
+    suggested_strategy: Optional[str] = None
+    entry_price_val: Optional[float] = None
+    stop_loss_val: Optional[float] = None
+    take_profit_val: Optional[float] = None
+    trigger_condition_val: Optional[str] = None
+
+    if not daily_k.empty and len(daily_k) >= 20:
+        try:
+            monthly_revenue = service.repo.get_monthly_revenue(stock_id)
+            quarterly_financials = service.repo.get_quarterly_financials(stock_id)
+            institutional_investors = service.repo.get_institutional_investors(stock_id)
+            margin_short = service.repo.get_margin_short(stock_id)
+
+            today_analysis = assemble_today_analysis(
+                stock_id=stock_id,
+                daily_k=daily_k,
+                monthly_revenue=monthly_revenue,
+                quarterly_financials=quarterly_financials,
+                institutional_investors=institutional_investors,
+                margin_short=margin_short,
+            )
+
+            entry_strat = None
+            for s in today_analysis.strategies:
+                if s.status == "進場" or s.action == "BUY":
+                    entry_strat = s
+                    break
+
+            if entry_strat:
+                suggested_strategy = entry_strat.strategy_name
+                entry_price_val = entry_strat.entry_price
+                stop_loss_val = entry_strat.stop_loss
+                take_profit_val = entry_strat.take_profit
+            else:
+                suggested_strategy = "觀望"
+                for s in today_analysis.strategies:
+                    if s.trigger_condition:
+                        trigger_condition_val = s.trigger_condition
+                        break
+                if not trigger_condition_val:
+                    if not today_analysis.fundamental.passed:
+                        trigger_condition_val = f"基本面不符: {today_analysis.fundamental.reason}"
+                    elif not today_analysis.chips.passed:
+                        trigger_condition_val = f"籌碼面不符: {today_analysis.chips.reason}"
+                    else:
+                        trigger_condition_val = "技術面未達突破點位"
+        except Exception:
+            pass
+
     return WatchlistItemModel(
         stock_id=stock_id,
         stock_name=item.get("stock_name") or service.get_stock_name(stock_id),
@@ -94,6 +149,11 @@ def _enrich_watchlist_item(item: Dict[str, Any], service: DataService) -> Watchl
         notes=item.get("notes") or "",
         created_at=str(item.get("created_at") or ""),
         groups=groups,
+        suggested_strategy=suggested_strategy,
+        entry_price=entry_price_val,
+        stop_loss=stop_loss_val,
+        take_profit=take_profit_val,
+        trigger_condition=trigger_condition_val,
     )
 
 
@@ -105,6 +165,35 @@ def get_watchlist(
     """Retrieve all tracked watchlist stocks with their latest prices and return rates."""
     raw_items = service.repo.get_watchlist(group_id=group_id)
     return [_enrich_watchlist_item(item, service) for item in raw_items]
+
+
+@router.post("/watchlist/sync")
+def sync_watchlist(
+    service: DataService = Depends(get_data_service),
+):
+    """Synchronize latest market data for all watchlist stocks and return updated items."""
+    raw_items = service.repo.get_watchlist()
+    synced_stocks = []
+    errors = []
+    for item in raw_items:
+        sid = item["stock_id"]
+        try:
+            res = service.sync_stock(sid)
+            synced_stocks.append(sid)
+            if res.errors:
+                errors.extend(res.errors)
+        except Exception as e:
+            errors.append(f"{sid}: {str(e)}")
+
+    updated_items = service.repo.get_watchlist()
+    enriched = [_enrich_watchlist_item(it, service) for it in updated_items]
+    return {
+        "success": True,
+        "synced_count": len(synced_stocks),
+        "total_count": len(raw_items),
+        "errors": errors,
+        "items": enriched,
+    }
 
 
 # --- Watchlist Groups Endpoints ---

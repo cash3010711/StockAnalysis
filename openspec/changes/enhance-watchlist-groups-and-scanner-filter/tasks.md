@@ -17,15 +17,15 @@
 
 ## 4. 自選股建議策略動態評估與最新行情同步
 
-- [ ] 4.1 在 `backend/app/api/watchlist.py` 的自選股列表查詢中整合 `assemble_today_analysis`，動態產出 `suggested_strategy`、`entry_price`、`stop_loss`、`take_profit` 與 `trigger_condition`，並新增 `POST /api/watchlist/sync` 手動同步最新行情端點；編寫測試 `pytest tests/test_watchlist_strategy_and_sync.py` 驗證通過
-- [ ] 4.2 更新 `frontend/src/api/client.ts` 與 `frontend/src/types/api.ts` 新增群組與策略點位型別定義與 API 呼叫方法；執行 `npx --prefix frontend tsc --noEmit` 驗證型別一致
+- [x] 4.1 在 `backend/app/api/watchlist.py` 的自選股列表查詢中整合 `assemble_today_analysis`，動態產出 `suggested_strategy`、`entry_price`、`stop_loss`、`take_profit` 與 `trigger_condition`，並新增 `POST /api/watchlist/sync` 手動同步最新行情端點；編寫測試 `pytest tests/test_watchlist_strategy_and_sync.py` 驗證通過
+- [x] 4.2 更新 `frontend/src/api/client.ts` 與 `frontend/src/types/api.ts` 新增群組與策略點位型別定義與 API 呼叫方法；執行 `npx --prefix frontend tsc --noEmit` 驗證型別一致
 
 ## 5. 自選股多群組與建議策略前端介面
 
-- [ ] 5.1 在 `frontend/src/components/WatchlistView.tsx` 實作群組分頁導覽標籤（「全部 (公用池)」及各群組標籤）、新增群組輸入框、每檔股票的群組標籤膠囊與「管理群組」勾選彈窗，並依當前分頁區分「移出群組」與「徹底刪除」；編寫前端組件測試驗證群組切換與標籤更新
-- [ ] 5.2 在 `frontend/src/components/WatchlistView.tsx` 表格新增「建議策略」與「參考點位」欄位（進場標示策略名稱與進出場價位，觀望標示觸發條件說明），並於頂部新增「🔄 同步最新行情」按鈕與載入狀態；執行 `npm --prefix frontend test` 驗證前端測試通過
+- [x] 5.1 在 `frontend/src/components/WatchlistView.tsx` 實作群組分頁導覽標籤（「全部 (公用池)」及各群組標籤）、新增群組輸入框、每檔股票的群組標籤膠囊與「管理群組」勾選彈窗，並依當前分頁區分「移出群組」與「徹底刪除」；編寫前端組件測試驗證群組切換與標籤更新
+- [x] 5.2 在 `frontend/src/components/WatchlistView.tsx` 表格新增「建議策略」與「參考點位」欄位（進場標示策略名稱與進出場價位，觀望標示觸發條件說明），並於頂部新增「🔄 同步最新行情」按鈕與載入狀態；執行 `npm --prefix frontend test` 驗證前端測試通過
 
 ## 6. 全系統整合驗證
 
-- [ ] 6.1 執行後端全量測試 `pytest` 確保所有測試案例通過無回歸
-- [ ] 6.2 執行前端全量測試與生產打包構建 `npm --prefix frontend test` 及 `npm --prefix frontend run build`，確保無編譯錯誤與相容性問題
+- [x] 6.1 執行後端全量測試 `pytest` 確保所有測試案例通過無回歸
+- [x] 6.2 執行前端全量測試與生產打包構建 `npm --prefix frontend test` 及 `npm --prefix frontend run build`，確保無編譯錯誤與相容性問題

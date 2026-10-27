@@ -175,6 +175,12 @@ export interface ScanRequest {
   scan_date?: string | null
 }
 
+export interface WatchlistGroup {
+  id: number
+  name: string
+  created_at?: string
+}
+
 export interface WatchlistItem {
   stock_id: string
   stock_name: string
@@ -186,6 +192,20 @@ export interface WatchlistItem {
   return_pct?: number | null
   notes?: string
   created_at?: string
+  groups?: WatchlistGroup[]
+  suggested_strategy?: string | null
+  entry_price?: number | null
+  stop_loss?: number | null
+  take_profit?: number | null
+  trigger_condition?: string | null
+}
+
+export interface WatchlistSyncResponse {
+  success: boolean
+  synced_count: number
+  total_count: number
+  errors: string[]
+  items?: WatchlistItem[]
 }
 
 export interface StrategyStatItem {
