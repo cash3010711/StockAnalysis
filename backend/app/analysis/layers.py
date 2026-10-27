@@ -131,7 +131,10 @@ def evaluate_fundamentals_series(
             .dropna(subset=["effective_date_dt"])
         )
     else:
-        rev_df = pd.DataFrame(columns=["effective_date_dt", "revenue_yoy"])
+        rev_df = pd.DataFrame({
+            "effective_date_dt": pd.Series(dtype="datetime64[ns]"),
+            "revenue_yoy": pd.Series(dtype=float),
+        })
 
     # Prepare quarterly financials with 4Q EPS sum
     q_df = compute_eps_4q_sum(quarterly_financials)
@@ -145,21 +148,34 @@ def evaluate_fundamentals_series(
             .dropna(subset=["effective_date_dt"])
         )
     else:
-        q_df = pd.DataFrame(columns=["effective_date_dt", "eps_4q_sum", "debt_ratio"])
+        q_df = pd.DataFrame({
+            "effective_date_dt": pd.Series(dtype="datetime64[ns]"),
+            "eps_4q_sum": pd.Series(dtype=float),
+            "debt_ratio": pd.Series(dtype=float),
+        })
 
     # As-of joins
-    merged = pd.merge_asof(
-        daily,
-        rev_df,
-        on="effective_date_dt",
-        direction="backward",
-    )
-    merged = pd.merge_asof(
-        merged,
-        q_df,
-        on="effective_date_dt",
-        direction="backward",
-    )
+    merged = daily.copy()
+    if not rev_df.empty:
+        merged = pd.merge_asof(
+            merged,
+            rev_df,
+            on="effective_date_dt",
+            direction="backward",
+        )
+    else:
+        merged["revenue_yoy"] = np.nan
+
+    if not q_df.empty:
+        merged = pd.merge_asof(
+            merged,
+            q_df,
+            on="effective_date_dt",
+            direction="backward",
+        )
+    else:
+        merged["eps_4q_sum"] = np.nan
+        merged["debt_ratio"] = np.nan
 
     passes = []
     reasons = []

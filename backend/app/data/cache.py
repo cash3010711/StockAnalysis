@@ -232,6 +232,21 @@ class CacheRepository:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_watchlist_group_items_group_id ON watchlist_group_items(group_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_watchlist_group_items_stock_id ON watchlist_group_items(stock_id)")
 
+            # 12. Market Index (e.g. TAIEX)
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS market_index (
+                index_id TEXT NOT NULL,
+                date TEXT NOT NULL,
+                open REAL DEFAULT 0,
+                high REAL DEFAULT 0,
+                low REAL DEFAULT 0,
+                close REAL DEFAULT 0,
+                volume REAL DEFAULT 0,
+                PRIMARY KEY (index_id, date)
+            )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_market_index_id_date ON market_index(index_id, date)")
+
             conn.commit()
 
     # --- Fetch Log Operations ---
@@ -265,6 +280,37 @@ class CacheRepository:
             conn.commit()
 
     # --- Upsert Operations ---
+
+    def upsert_market_index(self, index_id: str, df: pd.DataFrame):
+        """Upsert market index daily records into market_index table."""
+        if df.empty:
+            return
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            for _, r in df.iterrows():
+                d = str(r["date"])
+                cursor.execute(
+                    """
+                    INSERT INTO market_index (
+                        index_id, date, open, high, low, close, volume
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(index_id, date) DO UPDATE SET
+                        open = excluded.open,
+                        high = excluded.high,
+                        low = excluded.low,
+                        close = excluded.close,
+                        volume = excluded.volume
+                    """,
+                    (
+                        index_id, d,
+                        float(r.get("open", 0.0)),
+                        float(r.get("high", 0.0)),
+                        float(r.get("low", 0.0)),
+                        float(r.get("close", 0.0)),
+                        float(r.get("volume", 0.0)),
+                    ),
+                )
+            conn.commit()
 
     def upsert_daily_k(self, stock_id: str, df: pd.DataFrame):
         """Upsert daily K records into daily_k table."""
@@ -765,6 +811,18 @@ class CacheRepository:
             return row is not None
 
     # --- Query Operations with Point-in-time (as_of) Support ---
+
+    def get_market_index(self, index_id: str = "TAIEX", as_of_date: Optional[str] = None) -> pd.DataFrame:
+        """Query market index daily records, optionally restricted to date <= as_of_date."""
+        query = "SELECT * FROM market_index WHERE index_id = ?"
+        params: List[Any] = [index_id]
+        if as_of_date:
+            query += " AND date <= ?"
+            params.append(as_of_date)
+        query += " ORDER BY date ASC"
+
+        with self._get_connection() as conn:
+            return pd.read_sql_query(query, conn, params=params)
 
     def get_daily_k(self, stock_id: str, as_of_date: Optional[str] = None) -> pd.DataFrame:
         """Query daily K records, optionally restricted to effective_date <= as_of_date."""

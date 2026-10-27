@@ -1,7 +1,7 @@
 """Data service coordinating incremental sync, cache, and point-in-time data views."""
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 
 from app.data.cache import CacheRepository
@@ -249,3 +249,45 @@ class DataService:
         """Get stock name, defaulting to stock_id if not found."""
         name = self.repo.get_stock_name(stock_id)
         return name if name else stock_id
+
+    def sync_market_index(self, index_id: str = "TAIEX") -> Tuple[pd.DataFrame, List[str]]:
+        """Incrementally sync market index (TAIEX) into local cache.
+
+        Returns:
+            (market_index_df, warnings)
+        """
+        target = self.get_target_trade_date()
+        target_str = target.isoformat()
+        five_years_start = self.get_five_years_start_date(target).isoformat()
+        dataset_name = "market_index"
+        warnings: List[str] = []
+
+        last_fetched = self.repo.get_fetch_log(index_id, dataset_name)
+        if last_fetched:
+            start_d = date.fromisoformat(last_fetched) + timedelta(days=1)
+            start_str = start_d.isoformat()
+        else:
+            start_str = five_years_start
+
+        if start_str <= target_str:
+            try:
+                df = self.client.get_market_index(index_id=index_id, start_date=start_str, end_date=target_str)
+                if not df.empty:
+                    self.repo.upsert_market_index(index_id, df)
+                self.repo.update_fetch_log(index_id, dataset_name, target_str)
+            except FinMindQuotaExceededError:
+                cached = self.repo.get_market_index(index_id)
+                if cached.empty:
+                    raise FinMindQuotaExceededError(
+                        message="API 額度已用盡，且無加權指數快取",
+                        hint="FinMind 免費方案每小時請求次數已達上限，請稍後再試",
+                    )
+                warnings.append(f"大盤資料截至 {cached['date'].max()}，API 額度已用盡")
+            except Exception as e:
+                cached = self.repo.get_market_index(index_id)
+                if cached.empty:
+                    raise
+                warnings.append(f"大盤同步失敗，沿用快取至 {cached['date'].max()}: {e}")
+
+        cached = self.repo.get_market_index(index_id)
+        return cached, warnings

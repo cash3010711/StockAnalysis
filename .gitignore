@@ -25,3 +25,7 @@ ENV/
 node_modules/
 dist/
 .vite/
+
+# Research Reports
+reports/
+backend/reports/

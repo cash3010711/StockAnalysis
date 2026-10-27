@@ -180,6 +180,44 @@ class FinMindClient:
 
         return df
 
+    def get_market_index(
+        self,
+        index_id: str = "TAIEX",
+        start_date: str = "2020-01-01",
+        end_date: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Fetch market index (e.g. TAIEX) daily bars from TaiwanStockPrice."""
+        params: Dict[str, Any] = {"data_id": index_id, "start_date": start_date}
+        if end_date:
+            params["end_date"] = end_date
+
+        records = self._request("TaiwanStockPrice", params)
+        df = pd.DataFrame(records)
+        if df.empty:
+            return pd.DataFrame(
+                columns=["index_id", "date", "open", "high", "low", "close", "volume"]
+            )
+
+        rename_map = {
+            "max": "high",
+            "min": "low",
+            "Trading_Volume": "volume",
+            "Trading_money": "money",
+            "Trading_turnover": "turnover",
+        }
+        df = df.rename(columns=rename_map)
+        if "stock_id" in df.columns:
+            df["index_id"] = df["stock_id"]
+        else:
+            df["index_id"] = index_id
+
+        numeric_cols = ["open", "high", "low", "close", "volume"]
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        return df[["index_id", "date", "open", "high", "low", "close", "volume"]]
+
     def get_institutional_investors(
         self,
         stock_id: str,

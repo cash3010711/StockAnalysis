@@ -104,6 +104,24 @@ npm run build
 
 ---
 
+## 因子事件研究與多因子驗證 (Factor Event Study)
+
+本系統提供台股波段選股因子的事件研究 (Event Study) 與樣本外驗證工具：
+
+### 執行研究指令
+
+```powershell
+uv run --project backend python backend/scripts/run_factor_study.py
+```
+
+- **分析邏輯**：
+  - 標籤定義：訊號日隔日開盤進場，20 個交易日內最高價達 `+15%` 且未先跌破 `-7%`。
+  - 時間切分：2021-10 至 2024-12 為訓練期（自動扣除尾端 20 日空檔 Purge），2025-01 起為獨立樣本外測試期。
+  - 因子評估：5 大技術策略、基本面、籌碼面、加權指數大盤多空、相對強度 RS、波動收斂 VCP 等。
+  - 產出物：自動於 `backend/reports/` 產生 Markdown 格式分析報告，包含各因子 Lift 表、分數十分位表現與驗證結論。
+
+---
+
 ## 整合驗證與回測正確性抽查紀錄 (Task 8)
 
 ### 1. 端到端分析驗證 (Task 8.1)
