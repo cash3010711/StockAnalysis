@@ -98,8 +98,17 @@ def test_filter_candidates():
         DailyQuote("9999", "弱勢股", "2026-10-26", 100.0, 100.0, 95.0, 95.0, -5.0, -5.0, 10_000_000, 10_000.0, "TWSE"),
     ]
 
+    # Default: volume descending, allows consolidation stocks through
     candidates = TWSEClient.filter_candidates(quotes, min_volume_lots=1000.0, min_price=10.0, top_n=2)
     assert len(candidates) == 2
-    # 3008 has change_pct 10.0, 2330 has 5.0
-    assert candidates[0].stock_id == "3008"
-    assert candidates[1].stock_id == "2330"
+    assert candidates[0].stock_id == "2330"  # 50,000 lots
+    assert candidates[1].stock_id == "9999"  # 10,000 lots
+
+    # Legacy mode: change_pct descending + require_bullish
+    legacy = TWSEClient.filter_candidates(
+        quotes, min_volume_lots=1000.0, min_price=10.0, top_n=2,
+        sort_by="change_pct", require_bullish=True,
+    )
+    assert len(legacy) == 2
+    assert legacy[0].stock_id == "3008"  # +10%
+    assert legacy[1].stock_id == "2330"  # +5%

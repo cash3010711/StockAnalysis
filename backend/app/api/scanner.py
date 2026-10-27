@@ -90,6 +90,11 @@ class ScanMatchedStockModel(BaseModel):
     best_win_rate_pct: Optional[float] = None
     best_avg_return_pct: Optional[float] = None
     strategy_stats: List[StrategyStatItemModel] = []
+    factor_score: Optional[float] = None
+    factor_decile: Optional[int] = None
+    historical_hit_rate: Optional[float] = None
+    historical_lift: Optional[float] = None
+    triggered_factors: List[str] = Field(default_factory=list)
 
 
 class ScanRunResponse(BaseModel):

@@ -126,6 +126,11 @@ class AnalysisResponse(BaseModel):
     strategies: List[StrategyItemModel]
     ohlcv: List[OHLCVItemModel]
     institutional: List[InstitutionalItemModel] = []
+    factor_score: Optional[float] = None
+    factor_decile: Optional[int] = None
+    historical_hit_rate: Optional[float] = None
+    historical_lift: Optional[float] = None
+    triggered_factors: List[str] = []
 
 
 
@@ -167,6 +172,7 @@ def analyze_stock(
         )
 
     # 1. Assemble today's analysis
+    market_index_df = service.repo.get_market_index("TAIEX")
     today_analysis = assemble_today_analysis(
         stock_id=sid,
         daily_k=daily_k,
@@ -174,6 +180,7 @@ def analyze_stock(
         quarterly_financials=data.get("quarterly_financials", pd.DataFrame()),
         institutional_investors=data.get("institutional_investors", pd.DataFrame()),
         margin_short=data.get("margin_short", pd.DataFrame()),
+        market_index_k=market_index_df,
     )
 
     # 2. Run historical backtests
@@ -273,4 +280,9 @@ def analyze_stock(
         "strategies": combined_strategies,
         "ohlcv": ohlcv,
         "institutional": institutional_list,
+        "factor_score": today_analysis.factor_score,
+        "factor_decile": today_analysis.factor_decile,
+        "historical_hit_rate": today_analysis.historical_hit_rate,
+        "historical_lift": today_analysis.historical_lift,
+        "triggered_factors": today_analysis.triggered_factors,
     }

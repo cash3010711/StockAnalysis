@@ -320,20 +320,24 @@ class TWSEClient:
         min_volume_lots: float = 1000.0,
         min_price: float = 10.0,
         top_n: int = 50,
+        sort_by: str = "volume",
+        require_bullish: bool = False,
     ) -> List[DailyQuote]:
         """Filter quotes for stage 1 candidate pool:
 
         1. Volume >= min_volume_lots (default 1000 lots)
         2. Close >= min_price (default 10 TWD)
-        3. Bullish/Strong: Close >= Open or change > 0
-        4. Sort by change_pct descending, take top_n
+        3. If require_bullish: Close >= Open or change > 0
+        4. Sort by volume descending (or change_pct if sort_by='change_pct')
         """
         filtered = [
             q for q in quotes
             if q.volume_lots >= min_volume_lots
             and q.close >= min_price
-            and (q.close >= q.open or q.change > 0)
+            and (not require_bullish or (q.close >= q.open or q.change > 0))
         ]
-        # Sort by change_pct descending, then by volume descending
-        filtered.sort(key=lambda x: (x.change_pct, x.volume_lots), reverse=True)
+        if sort_by == "change_pct":
+            filtered.sort(key=lambda x: (x.change_pct, x.volume_lots), reverse=True)
+        else:
+            filtered.sort(key=lambda x: (x.volume_lots, x.change_pct), reverse=True)
         return filtered[:top_n]

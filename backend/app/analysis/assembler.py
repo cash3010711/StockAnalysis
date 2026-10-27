@@ -1,11 +1,12 @@
 """Assembly of today's three-layer stock analysis."""
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from app.analysis import params
 from app.analysis.exits import calculate_exit_levels, round_to_tick
+from app.analysis.factor_scorer import evaluate_stock_factor_score
 from app.analysis.indicators import compute_all_indicators
 from app.analysis.layers import (
     evaluate_chips_series,
@@ -64,6 +65,11 @@ class TodayAnalysis:
     fundamental: FundamentalSummary
     chips: ChipsSummary
     strategies: List[StrategyAnalysisResult]
+    factor_score: Optional[float] = None
+    factor_decile: Optional[int] = None
+    historical_hit_rate: Optional[float] = None
+    historical_lift: Optional[float] = None
+    triggered_factors: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert analysis result to dictionary."""
@@ -77,6 +83,7 @@ def assemble_today_analysis(
     quarterly_financials: pd.DataFrame,
     institutional_investors: pd.DataFrame,
     margin_short: pd.DataFrame,
+    market_index_k: Optional[pd.DataFrame] = None,
 ) -> TodayAnalysis:
     """Assemble today's analysis by evaluating fundamental, chips, and technical layers.
 
@@ -177,6 +184,21 @@ def assemble_today_analysis(
                 )
             )
 
+    factor_res = None
+    try:
+        factor_res = evaluate_stock_factor_score(
+            stock_id=stock_id,
+            daily_k=daily_k,
+            monthly_revenue=monthly_revenue,
+            quarterly_financials=quarterly_financials,
+            institutional_investors=institutional_investors,
+            margin_short=margin_short,
+            market_index_k=market_index_k,
+            as_of_date=evaluation_date,
+        )
+    except Exception:
+        factor_res = None
+
     return TodayAnalysis(
         stock_id=stock_id,
         evaluation_date=evaluation_date,
@@ -184,4 +206,9 @@ def assemble_today_analysis(
         fundamental=fundamental_summary,
         chips=chips_summary,
         strategies=strategy_results,
+        factor_score=factor_res.factor_score if factor_res else None,
+        factor_decile=factor_res.factor_decile if factor_res else None,
+        historical_hit_rate=factor_res.historical_hit_rate if factor_res else None,
+        historical_lift=factor_res.historical_lift if factor_res else None,
+        triggered_factors=factor_res.triggered_factors if factor_res else [],
     )

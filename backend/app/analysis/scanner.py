@@ -323,6 +323,7 @@ def scan_single_stock(
     atr14 = float(eval_row["atr14"]) if pd.notna(eval_row.get("atr14")) else 0.0
 
     data = service.as_of(stock_id, eval_date)
+    market_index_df = service.repo.get_market_index("TAIEX")
     today_analysis = assemble_today_analysis(
         stock_id=stock_id,
         daily_k=daily_k,
@@ -330,6 +331,7 @@ def scan_single_stock(
         quarterly_financials=data.get("quarterly_financials", pd.DataFrame()),
         institutional_investors=data.get("institutional_investors", pd.DataFrame()),
         margin_short=data.get("margin_short", pd.DataFrame()),
+        market_index_k=market_index_df,
     )
 
     # Check fundamental condition if required
@@ -436,6 +438,11 @@ def scan_single_stock(
         "best_win_rate_pct": best_win_rate_pct,
         "best_avg_return_pct": best_avg_return_pct,
         "strategy_stats": strategy_stats,
+        "factor_score": today_analysis.factor_score,
+        "factor_decile": today_analysis.factor_decile,
+        "historical_hit_rate": today_analysis.historical_hit_rate,
+        "historical_lift": today_analysis.historical_lift,
+        "triggered_factors": today_analysis.triggered_factors,
     }
 
     return matched_data, quota_hit
@@ -552,6 +559,15 @@ def run_scan(
             for w in event.get("warnings", []):
                 if w not in warnings:
                     warnings.append(w)
+
+    # Sort matched results primarily by factor_score descending, then win rate
+    matched_results.sort(
+        key=lambda r: (
+            r.get("factor_score") if r.get("factor_score") is not None else -1.0,
+            r.get("best_win_rate_pct") if r.get("best_win_rate_pct") is not None else -1.0,
+        ),
+        reverse=True,
+    )
 
     return {
         "total": total,

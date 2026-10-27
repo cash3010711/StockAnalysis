@@ -35,6 +35,7 @@ const DEFAULT_STRATEGIES: string[] = [
 type SortField =
   | 'stock_id'
   | 'close'
+  | 'factor_score'
   | 'best_win_rate_pct'
   | 'best_avg_return_pct'
   | 'foreign_trust_net_buy_10d'
@@ -1155,6 +1156,13 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({
                   >
                     收盤價 {getSortIcon('close')}
                   </th>
+                  <th
+                    onClick={() => handleSort('factor_score')}
+                    data-testid="sort-factor_score"
+                    style={{ padding: '10px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    起漲評分 {getSortIcon('factor_score')}
+                  </th>
                   <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>今日觸發策略</th>
                   <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>建議進出場點位</th>
                   <th
@@ -1311,6 +1319,81 @@ export const MarketScanner: React.FC<MarketScannerProps> = ({
                         <div style={{ fontSize: '11px', color: '#94a3b8' }}>
                           {stock.evaluation_date}
                         </div>
+                      </td>
+
+                      {/* 2.5 Multi-Factor Score & Decile & Hit rate */}
+                      <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span
+                            data-testid={`factor-score-${stock.stock_id}`}
+                            style={{
+                              fontSize: '14px',
+                              fontWeight: 700,
+                              color:
+                                (stock.factor_score ?? 0) >= 75
+                                  ? '#7c3aed'
+                                  : (stock.factor_score ?? 0) >= 60
+                                  ? '#2563eb'
+                                  : '#475569',
+                            }}
+                          >
+                            {stock.factor_score != null ? `${stock.factor_score.toFixed(1)}分` : '-'}
+                          </span>
+                          {stock.factor_decile != null && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                fontWeight: 600,
+                                background:
+                                  stock.factor_decile <= 2
+                                    ? '#f3e8ff'
+                                    : stock.factor_decile <= 4
+                                    ? '#dbeafe'
+                                    : '#f1f5f9',
+                                color:
+                                  stock.factor_decile <= 2
+                                    ? '#7e22ce'
+                                    : stock.factor_decile <= 4
+                                    ? '#1d4ed8'
+                                    : '#64748b',
+                              }}
+                            >
+                              第{stock.factor_decile}組
+                            </span>
+                          )}
+                        </div>
+                        {stock.historical_hit_rate != null && (
+                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                            起漲率 {stock.historical_hit_rate}%
+                            {stock.historical_lift != null && stock.historical_lift > 1.0 && (
+                              <span style={{ color: '#16a34a', fontWeight: 600, marginLeft: '3px' }}>
+                                ({stock.historical_lift.toFixed(1)}x)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {stock.triggered_factors && stock.triggered_factors.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px', maxWidth: '170px' }}>
+                            {stock.triggered_factors.map((tf) => (
+                              <span
+                                key={tf}
+                                style={{
+                                  fontSize: '10px',
+                                  padding: '1px 4px',
+                                  borderRadius: '3px',
+                                  background: '#fef3c7',
+                                  color: '#92400e',
+                                  border: '1px solid #fde68a',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {tf}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </td>
 
                       {/* 3. Triggered Strategies */}

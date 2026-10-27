@@ -67,6 +67,11 @@ const mockMatchedStock1: ScanMatchedStock = {
       three_layer_avg_return_pct: 4.8,
     },
   ],
+  factor_score: 82.5,
+  factor_decile: 1,
+  historical_hit_rate: 24.9,
+  historical_lift: 2.0,
+  triggered_factors: ['RS前20%強', '月營收創新高'],
 }
 
 const mockMatchedStock2: ScanMatchedStock = {
@@ -102,6 +107,11 @@ const mockMatchedStock2: ScanMatchedStock = {
       three_layer_avg_return_pct: 8.2,
     },
   ],
+  factor_score: 45.0,
+  factor_decile: 6,
+  historical_hit_rate: 11.2,
+  historical_lift: 0.9,
+  triggered_factors: ['法人10日買超>0'],
 }
 
 function createNDJSONResponse(events: any[]) {
@@ -823,5 +833,58 @@ describe('MarketScanner Component', () => {
     // Click 2454 star button to add
     fireEvent.click(scanStar2454)
     expect(onToggleWatchlist).toHaveBeenCalledWith('2454', '聯發科', 1250.0)
+  })
+
+  it('displays factor score and badges, and supports sorting by factor_score', async () => {
+    const onSelectStock = vi.fn()
+    const events = [
+      { event: 'start', total: 2 },
+      { event: 'match', data: mockMatchedStock1, current: 1, total: 2, matched_count: 1 },
+      { event: 'match', data: mockMatchedStock2, current: 2, total: 2, matched_count: 2 },
+      { event: 'done', total: 2, scanned: 2, matched_count: 2, quota_exceeded: false, warnings: [] },
+    ]
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/api/scanner/options')) {
+        return { ok: true, status: 200, json: async () => mockOptions } as Response
+      }
+      if (urlStr.includes('/api/scanner/stream')) {
+        return createNDJSONResponse(events)
+      }
+      return { ok: false, status: 404 } as Response
+    })
+
+    render(<MarketScanner onSelectStock={onSelectStock} />)
+
+    const startBtn = screen.getByTestId('start-scan-btn')
+    fireEvent.click(startBtn)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('stock-row-2330')).toBeInTheDocument()
+      expect(screen.getByTestId('stock-row-2454')).toBeInTheDocument()
+    })
+
+    // Verify factor score displays and badges
+    expect(screen.getByTestId('factor-score-2330')).toHaveTextContent('82.5分')
+    expect(screen.getByText('第1組')).toBeInTheDocument()
+    expect(screen.getByText(/起漲率 24.9%/)).toBeInTheDocument()
+    expect(screen.getByText('(2.0x)')).toBeInTheDocument()
+    expect(screen.getByText('RS前20%強')).toBeInTheDocument()
+
+    // Test sort by factor_score
+    const sortScoreBtn = screen.getByTestId('sort-factor_score')
+    fireEvent.click(sortScoreBtn)
+
+    const rows = screen.getAllByRole('row')
+    // Row 1 (first data row) should be 2330 because factor_score 82.5 > 45.0
+    expect(rows[1]).toHaveTextContent('2330')
+    expect(rows[2]).toHaveTextContent('2454')
+
+    // Click again for ascending sort
+    fireEvent.click(sortScoreBtn)
+    const ascRows = screen.getAllByRole('row')
+    expect(ascRows[1]).toHaveTextContent('2454')
+    expect(ascRows[2]).toHaveTextContent('2330')
   })
 })

@@ -117,6 +117,11 @@ export interface AnalysisResponse {
   strategies: StrategyItem[]
   ohlcv: OHLCVItem[]
   institutional?: InstitutionalItem[]
+  factor_score?: number | null
+  factor_decile?: number | null
+  historical_hit_rate?: number | null
+  historical_lift?: number | null
+  triggered_factors?: string[]
 }
 
 export interface ApiErrorData {
@@ -244,6 +249,11 @@ export interface ScanMatchedStock {
   best_win_rate_pct?: number | null
   best_avg_return_pct?: number | null
   strategy_stats: StrategyStatItem[]
+  factor_score?: number | null
+  factor_decile?: number | null
+  historical_hit_rate?: number | null
+  historical_lift?: number | null
+  triggered_factors?: string[]
 }
 
 export interface ScanRunResponse {

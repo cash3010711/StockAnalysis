@@ -488,3 +488,42 @@ def test_scanner_require_above_ma60(service):
     res_fail_ma60, _ = scan_single_stock(service, "2330", cfg_pass)
     assert res_fail_ma60 is None
 
+
+def test_scanner_factor_score_fields_populated(service):
+    """Verify factor scoring fields are present in matched scanner output."""
+    _seed_full_stock(service, "2330", "台積電", trigger_breakout=True)
+    cfg = ScanFilterConfig(
+        pool="cached",
+        require_fundamental=True,
+        require_chips=True,
+    )
+    matched, _ = scan_single_stock(service, "2330", cfg)
+    assert matched is not None
+    assert "factor_score" in matched
+    assert isinstance(matched["factor_score"], (int, float))
+    assert 0.0 <= matched["factor_score"] <= 100.0
+    assert "factor_decile" in matched
+    assert 1 <= matched["factor_decile"] <= 10
+    assert "historical_hit_rate" in matched
+    assert "historical_lift" in matched
+    assert "triggered_factors" in matched
+    assert isinstance(matched["triggered_factors"], list)
+
+
+def test_run_scan_sorts_by_factor_score(service):
+    """Verify run_scan orders results by factor_score descending."""
+    _seed_full_stock(service, "2330", "台積電", trigger_breakout=True)
+    _seed_full_stock(service, "2317", "鴻海", trigger_breakout=True)
+
+    cfg = ScanFilterConfig(
+        pool="cached",
+        require_fundamental=True,
+        require_chips=True,
+    )
+    result = run_scan(service, cfg)
+    results = result["results"]
+    assert len(results) >= 2
+    scores = [r["factor_score"] for r in results]
+    assert all(scores[i] >= scores[i + 1] for i in range(len(scores) - 1))
+
+
