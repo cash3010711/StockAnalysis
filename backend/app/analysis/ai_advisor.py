@@ -170,10 +170,12 @@ def stream_ai_advice(
     )
 
     models_to_try = [model]
-    if model != "gemini-3.5-flash":
-        models_to_try.append("gemini-3.5-flash")
+    for fallback in ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"]:
+        if fallback not in models_to_try:
+            models_to_try.append(fallback)
 
     last_err: Optional[Exception] = None
+    import time
     for m in models_to_try:
         try:
             response_stream = client.models.generate_content_stream(
@@ -187,6 +189,8 @@ def stream_ai_advice(
             return
         except Exception as e:
             last_err = e
+            # Small delay before trying fallback model if 503 or temporary load spike
+            time.sleep(0.3)
 
     raise AiAdvisorError(f"Gemini API 串流生成失敗: {str(last_err)}")
 
