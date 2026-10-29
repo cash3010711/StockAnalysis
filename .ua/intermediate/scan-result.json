@@ -1,0 +1,1870 @@
+{
+  "name": "Taiwan Stock Swing Strategy Analyzer (台股波段策略分析儀)",
+  "description": "提供台股（上市、上櫃普通股）波段交易策略分析與歷史回測的 Web 應用工具，結合基本面、籌碼面與技術面三層檢驗及多因子量化評分，杜絕未來函數偏差。",
+  "languages": [
+    "config",
+    "css",
+    "html",
+    "json",
+    "markdown",
+    "python",
+    "toml",
+    "typescript",
+    "unknown",
+    "yaml"
+  ],
+  "frameworks": [
+    "FastAPI",
+    "React",
+    "Vite",
+    "pandas",
+    "TradingView Lightweight Charts",
+    "Vitest",
+    "pytest"
+  ],
+  "files": [
+    {
+      "path": ".agents/skills/.openspec-target",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".agents/skills/openspec-apply-change/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 206,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/openspec-archive-change/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 221,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/openspec-explore/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 356,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/openspec-propose/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 175,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/openspec-sync-specs/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 290,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/skills/openspec-update-change/SKILL.md",
+      "language": "markdown",
+      "sizeLines": 109,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/workflows/opsx-apply.md",
+      "language": "markdown",
+      "sizeLines": 198,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/workflows/opsx-archive.md",
+      "language": "markdown",
+      "sizeLines": 260,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/workflows/opsx-explore.md",
+      "language": "markdown",
+      "sizeLines": 237,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/workflows/opsx-propose.md",
+      "language": "markdown",
+      "sizeLines": 167,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/workflows/opsx-sync.md",
+      "language": "markdown",
+      "sizeLines": 282,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".agents/workflows/opsx-update.md",
+      "language": "markdown",
+      "sizeLines": 101,
+      "fileCategory": "docs"
+    },
+    {
+      "path": ".ua/config.json",
+      "language": "json",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".ua/domain-graph.json",
+      "language": "json",
+      "sizeLines": 1345,
+      "fileCategory": "config"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 214,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "backend/.env.example",
+      "language": "config",
+      "sizeLines": 8,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/.python-version",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/README.md",
+      "language": "markdown",
+      "sizeLines": 0,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "backend/app/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/__init__.py",
+      "language": "python",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/ai_advisor.py",
+      "language": "python",
+      "sizeLines": 204,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/assembler.py",
+      "language": "python",
+      "sizeLines": 214,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/backtest.py",
+      "language": "python",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/exits.py",
+      "language": "python",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/factor_scorer.py",
+      "language": "python",
+      "sizeLines": 223,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/indicators.py",
+      "language": "python",
+      "sizeLines": 221,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/layers.py",
+      "language": "python",
+      "sizeLines": 335,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/params.py",
+      "language": "python",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/scanner.py",
+      "language": "python",
+      "sizeLines": 613,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/analysis/strategies.py",
+      "language": "python",
+      "sizeLines": 208,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/api/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/api/analysis.py",
+      "language": "python",
+      "sizeLines": 417,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/api/scanner.py",
+      "language": "python",
+      "sizeLines": 241,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/api/stocks.py",
+      "language": "python",
+      "sizeLines": 37,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/api/watchlist.py",
+      "language": "python",
+      "sizeLines": 395,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/backtest/__init__.py",
+      "language": "python",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/backtest/engine.py",
+      "language": "python",
+      "sizeLines": 223,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/backtest/runner.py",
+      "language": "python",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/backtest/stats.py",
+      "language": "python",
+      "sizeLines": 161,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/config.py",
+      "language": "python",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/data/__init__.py",
+      "language": "python",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/data/cache.py",
+      "language": "python",
+      "sizeLines": 1272,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/data/exceptions.py",
+      "language": "python",
+      "sizeLines": 106,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/data/finmind_client.py",
+      "language": "python",
+      "sizeLines": 424,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/data/publication.py",
+      "language": "python",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/data/scheduler.py",
+      "language": "python",
+      "sizeLines": 180,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/data/service.py",
+      "language": "python",
+      "sizeLines": 293,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/data/stock_filter.py",
+      "language": "python",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/data/twse_client.py",
+      "language": "python",
+      "sizeLines": 343,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/main.py",
+      "language": "python",
+      "sizeLines": 65,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/research/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/research/config.py",
+      "language": "python",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/research/event_study.py",
+      "language": "python",
+      "sizeLines": 219,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/research/factors.py",
+      "language": "python",
+      "sizeLines": 300,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/research/labels.py",
+      "language": "python",
+      "sizeLines": 121,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/research/report.py",
+      "language": "python",
+      "sizeLines": 109,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/app/research/scoring.py",
+      "language": "python",
+      "sizeLines": 210,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/pyproject.toml",
+      "language": "toml",
+      "sizeLines": 28,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/scripts/run_factor_study.py",
+      "language": "python",
+      "sizeLines": 125,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/conftest.py",
+      "language": "python",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/fixtures/finmind/balance_sheet.json",
+      "language": "json",
+      "sizeLines": 2861,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/tests/fixtures/finmind/daily_price.json",
+      "language": "json",
+      "sizeLines": 53,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/tests/fixtures/finmind/financial_statements.json",
+      "language": "json",
+      "sizeLines": 481,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/tests/fixtures/finmind/institutional.json",
+      "language": "json",
+      "sizeLines": 75,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/tests/fixtures/finmind/margin_short.json",
+      "language": "json",
+      "sizeLines": 41,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/tests/fixtures/finmind/month_revenue.json",
+      "language": "json",
+      "sizeLines": 50,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/tests/fixtures/finmind/stock_info.json",
+      "language": "json",
+      "sizeLines": 30420,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/tests/fixtures/record_fixtures.py",
+      "language": "python",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_ai_advice_api.py",
+      "language": "python",
+      "sizeLines": 146,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_ai_advisor.py",
+      "language": "python",
+      "sizeLines": 147,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_analysis_api.py",
+      "language": "python",
+      "sizeLines": 601,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_as_of.py",
+      "language": "python",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_assembler.py",
+      "language": "python",
+      "sizeLines": 185,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_backtest_engine.py",
+      "language": "python",
+      "sizeLines": 221,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_backtest_runner.py",
+      "language": "python",
+      "sizeLines": 183,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_backtest_stats.py",
+      "language": "python",
+      "sizeLines": 143,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_cache.py",
+      "language": "python",
+      "sizeLines": 204,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_config.py",
+      "language": "python",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_exits.py",
+      "language": "python",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_factor_scorer.py",
+      "language": "python",
+      "sizeLines": 82,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_finmind_client.py",
+      "language": "python",
+      "sizeLines": 162,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_health.py",
+      "language": "python",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_indicators.py",
+      "language": "python",
+      "sizeLines": 199,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_layers.py",
+      "language": "python",
+      "sizeLines": 168,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_market_data.py",
+      "language": "python",
+      "sizeLines": 107,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_market_index.py",
+      "language": "python",
+      "sizeLines": 114,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_nightly_cache.py",
+      "language": "python",
+      "sizeLines": 117,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_publication.py",
+      "language": "python",
+      "sizeLines": 54,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_research_factors.py",
+      "language": "python",
+      "sizeLines": 151,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_research_labels.py",
+      "language": "python",
+      "sizeLines": 93,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_research_scoring.py",
+      "language": "python",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_scanner.py",
+      "language": "python",
+      "sizeLines": 529,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_scanner_industry_filter.py",
+      "language": "python",
+      "sizeLines": 151,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_scheduler_api.py",
+      "language": "python",
+      "sizeLines": 143,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_stock_lookup.py",
+      "language": "python",
+      "sizeLines": 224,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_strategies.py",
+      "language": "python",
+      "sizeLines": 174,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_sync.py",
+      "language": "python",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_two_stage_scan.py",
+      "language": "python",
+      "sizeLines": 168,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_twse_client.py",
+      "language": "python",
+      "sizeLines": 114,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_watchlist_api.py",
+      "language": "python",
+      "sizeLines": 132,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_watchlist_cache.py",
+      "language": "python",
+      "sizeLines": 91,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_watchlist_groups_api.py",
+      "language": "python",
+      "sizeLines": 167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_watchlist_groups_cache.py",
+      "language": "python",
+      "sizeLines": 128,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/tests/test_watchlist_strategy_and_sync.py",
+      "language": "python",
+      "sizeLines": 132,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/.oxlintrc.json",
+      "language": "json",
+      "sizeLines": 8,
+      "fileCategory": "config"
+    },
+    {
+      "path": "frontend/README.md",
+      "language": "markdown",
+      "sizeLines": 32,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "frontend/index.html",
+      "language": "html",
+      "sizeLines": 13,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "frontend/package.json",
+      "language": "json",
+      "sizeLines": 32,
+      "fileCategory": "config"
+    },
+    {
+      "path": "frontend/src/AiAdvisorE2E.test.tsx",
+      "language": "typescript",
+      "sizeLines": 182,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/App.css",
+      "language": "css",
+      "sizeLines": 184,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "frontend/src/App.test.tsx",
+      "language": "typescript",
+      "sizeLines": 447,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/App.tsx",
+      "language": "typescript",
+      "sizeLines": 412,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/api/client.ts",
+      "language": "typescript",
+      "sizeLines": 482,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/api/nightlyPlan.ts",
+      "language": "typescript",
+      "sizeLines": 96,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/AiAdvisorCard.test.tsx",
+      "language": "typescript",
+      "sizeLines": 179,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/AiAdvisorCard.tsx",
+      "language": "typescript",
+      "sizeLines": 513,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/AlertBanner.tsx",
+      "language": "typescript",
+      "sizeLines": 113,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/Disclaimer.tsx",
+      "language": "typescript",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/EvaluationHeader.tsx",
+      "language": "typescript",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/LayersAndAlerts.test.tsx",
+      "language": "typescript",
+      "sizeLines": 95,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/LayersSummary.tsx",
+      "language": "typescript",
+      "sizeLines": 162,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/MarketScanner.test.tsx",
+      "language": "typescript",
+      "sizeLines": 890,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/MarketScanner.tsx",
+      "language": "typescript",
+      "sizeLines": 1546,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/SearchBox.test.tsx",
+      "language": "typescript",
+      "sizeLines": 86,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/SearchBox.tsx",
+      "language": "typescript",
+      "sizeLines": 257,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/StockChart.test.tsx",
+      "language": "typescript",
+      "sizeLines": 328,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/StockChart.tsx",
+      "language": "typescript",
+      "sizeLines": 951,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/StrategyTable.test.tsx",
+      "language": "typescript",
+      "sizeLines": 216,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/StrategyTable.tsx",
+      "language": "typescript",
+      "sizeLines": 548,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/WatchlistView.test.tsx",
+      "language": "typescript",
+      "sizeLines": 348,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/components/WatchlistView.tsx",
+      "language": "typescript",
+      "sizeLines": 810,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/index.css",
+      "language": "css",
+      "sizeLines": 47,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "frontend/src/main.tsx",
+      "language": "typescript",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/setupTests.ts",
+      "language": "typescript",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/src/types/api.ts",
+      "language": "typescript",
+      "sizeLines": 314,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/tsconfig.app.json",
+      "language": "json",
+      "sizeLines": 26,
+      "fileCategory": "config"
+    },
+    {
+      "path": "frontend/tsconfig.json",
+      "language": "json",
+      "sizeLines": 7,
+      "fileCategory": "config"
+    },
+    {
+      "path": "frontend/tsconfig.node.json",
+      "language": "json",
+      "sizeLines": 23,
+      "fileCategory": "config"
+    },
+    {
+      "path": "frontend/vite.config.ts",
+      "language": "typescript",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "openspec/changes/ai-advisor-and-remote-access/.openspec.yaml",
+      "language": "yaml",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "openspec/changes/ai-advisor-and-remote-access/design.md",
+      "language": "markdown",
+      "sizeLines": 67,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/ai-advisor-and-remote-access/proposal.md",
+      "language": "markdown",
+      "sizeLines": 28,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/ai-advisor-and-remote-access/specs/ai-advisor/spec.md",
+      "language": "markdown",
+      "sizeLines": 35,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/ai-advisor-and-remote-access/specs/analysis-dashboard/spec.md",
+      "language": "markdown",
+      "sizeLines": 18,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/ai-advisor-and-remote-access/tasks.md",
+      "language": "markdown",
+      "sizeLines": 28,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/.openspec.yaml",
+      "language": "yaml",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/design.md",
+      "language": "markdown",
+      "sizeLines": 92,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/proposal.md",
+      "language": "markdown",
+      "sizeLines": 49,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/specs/analysis-dashboard/spec.md",
+      "language": "markdown",
+      "sizeLines": 57,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/specs/market-data/spec.md",
+      "language": "markdown",
+      "sizeLines": 61,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/specs/signal-analysis/spec.md",
+      "language": "markdown",
+      "sizeLines": 75,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/specs/stock-lookup/spec.md",
+      "language": "markdown",
+      "sizeLines": 43,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/specs/strategy-backtest/spec.md",
+      "language": "markdown",
+      "sizeLines": 93,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/tasks.md",
+      "language": "markdown",
+      "sizeLines": 59,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-22-add-market-scanner/.openspec.yaml",
+      "language": "yaml",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-22-add-market-scanner/design.md",
+      "language": "markdown",
+      "sizeLines": 48,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-22-add-market-scanner/proposal.md",
+      "language": "markdown",
+      "sizeLines": 32,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-22-add-market-scanner/specs/analysis-dashboard/spec.md",
+      "language": "markdown",
+      "sizeLines": 14,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-22-add-market-scanner/specs/market-scanner/spec.md",
+      "language": "markdown",
+      "sizeLines": 58,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-22-add-market-scanner/tasks.md",
+      "language": "markdown",
+      "sizeLines": 19,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-26-add-chart-indicators/.openspec.yaml",
+      "language": "yaml",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-26-add-chart-indicators/design.md",
+      "language": "markdown",
+      "sizeLines": 84,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-26-add-chart-indicators/proposal.md",
+      "language": "markdown",
+      "sizeLines": 33,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-26-add-chart-indicators/specs/analysis-dashboard/spec.md",
+      "language": "markdown",
+      "sizeLines": 26,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-26-add-chart-indicators/tasks.md",
+      "language": "markdown",
+      "sizeLines": 20,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-factor-event-study/.openspec.yaml",
+      "language": "yaml",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-factor-event-study/design.md",
+      "language": "markdown",
+      "sizeLines": 79,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-factor-event-study/proposal.md",
+      "language": "markdown",
+      "sizeLines": 41,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-factor-event-study/specs/factor-research/spec.md",
+      "language": "markdown",
+      "sizeLines": 100,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-factor-event-study/specs/market-data/spec.md",
+      "language": "markdown",
+      "sizeLines": 18,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-factor-event-study/tasks.md",
+      "language": "markdown",
+      "sizeLines": 34,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/.openspec.yaml",
+      "language": "yaml",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/design.md",
+      "language": "markdown",
+      "sizeLines": 55,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/proposal.md",
+      "language": "markdown",
+      "sizeLines": 32,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/specs/analysis-dashboard/spec.md",
+      "language": "markdown",
+      "sizeLines": 60,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/specs/market-scanner/spec.md",
+      "language": "markdown",
+      "sizeLines": 18,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/specs/watchlist/spec.md",
+      "language": "markdown",
+      "sizeLines": 25,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/tasks.md",
+      "language": "markdown",
+      "sizeLines": 21,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/.openspec.yaml",
+      "language": "yaml",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/design.md",
+      "language": "markdown",
+      "sizeLines": 88,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/proposal.md",
+      "language": "markdown",
+      "sizeLines": 36,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/specs/market-scanner/spec.md",
+      "language": "markdown",
+      "sizeLines": 41,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/specs/watchlist/spec.md",
+      "language": "markdown",
+      "sizeLines": 53,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/tasks.md",
+      "language": "markdown",
+      "sizeLines": 31,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/.openspec.yaml",
+      "language": "yaml",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/design.md",
+      "language": "markdown",
+      "sizeLines": 61,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/proposal.md",
+      "language": "markdown",
+      "sizeLines": 38,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/specs/analysis-dashboard/spec.md",
+      "language": "markdown",
+      "sizeLines": 14,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/specs/market-scanner/spec.md",
+      "language": "markdown",
+      "sizeLines": 37,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/tasks.md",
+      "language": "markdown",
+      "sizeLines": 28,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/.openspec.yaml",
+      "language": "yaml",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/design.md",
+      "language": "markdown",
+      "sizeLines": 60,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/proposal.md",
+      "language": "markdown",
+      "sizeLines": 34,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/specs/market-scanner/spec.md",
+      "language": "markdown",
+      "sizeLines": 17,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/specs/nightly-scheduler/spec.md",
+      "language": "markdown",
+      "sizeLines": 25,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/tasks.md",
+      "language": "markdown",
+      "sizeLines": 21,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/config.yaml",
+      "language": "yaml",
+      "sizeLines": 38,
+      "fileCategory": "config"
+    },
+    {
+      "path": "openspec/specs/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "openspec/specs/analysis-dashboard/spec.md",
+      "language": "markdown",
+      "sizeLines": 103,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/specs/factor-research/spec.md",
+      "language": "markdown",
+      "sizeLines": 99,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/specs/market-data/spec.md",
+      "language": "markdown",
+      "sizeLines": 76,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/specs/market-scanner/spec.md",
+      "language": "markdown",
+      "sizeLines": 107,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/specs/nightly-scheduler/spec.md",
+      "language": "markdown",
+      "sizeLines": 24,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/specs/signal-analysis/spec.md",
+      "language": "markdown",
+      "sizeLines": 75,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/specs/stock-lookup/spec.md",
+      "language": "markdown",
+      "sizeLines": 43,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/specs/strategy-backtest/spec.md",
+      "language": "markdown",
+      "sizeLines": 93,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "openspec/specs/watchlist/spec.md",
+      "language": "markdown",
+      "sizeLines": 54,
+      "fileCategory": "docs"
+    }
+  ],
+  "totalFiles": 210,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "large",
+  "importMap": {
+    ".agents/skills/.openspec-target": [],
+    ".agents/skills/openspec-apply-change/SKILL.md": [],
+    ".agents/skills/openspec-archive-change/SKILL.md": [],
+    ".agents/skills/openspec-explore/SKILL.md": [],
+    ".agents/skills/openspec-propose/SKILL.md": [],
+    ".agents/skills/openspec-sync-specs/SKILL.md": [],
+    ".agents/skills/openspec-update-change/SKILL.md": [],
+    ".agents/workflows/opsx-apply.md": [],
+    ".agents/workflows/opsx-archive.md": [],
+    ".agents/workflows/opsx-explore.md": [],
+    ".agents/workflows/opsx-propose.md": [],
+    ".agents/workflows/opsx-sync.md": [],
+    ".agents/workflows/opsx-update.md": [],
+    ".ua/config.json": [],
+    ".ua/domain-graph.json": [],
+    "README.md": [],
+    "backend/.env.example": [],
+    "backend/.python-version": [],
+    "backend/README.md": [],
+    "backend/app/__init__.py": [],
+    "backend/app/analysis/__init__.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/assembler.py",
+      "backend/app/analysis/exits.py",
+      "backend/app/analysis/indicators.py",
+      "backend/app/analysis/layers.py",
+      "backend/app/analysis/params.py",
+      "backend/app/analysis/strategies.py"
+    ],
+    "backend/app/analysis/ai_advisor.py": [
+      "backend/app/analysis/assembler.py",
+      "backend/app/config.py",
+      "backend/app/data/exceptions.py"
+    ],
+    "backend/app/analysis/assembler.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/exits.py",
+      "backend/app/analysis/factor_scorer.py",
+      "backend/app/analysis/indicators.py",
+      "backend/app/analysis/layers.py",
+      "backend/app/analysis/params.py",
+      "backend/app/analysis/strategies.py",
+      "backend/app/backtest/stats.py"
+    ],
+    "backend/app/analysis/backtest.py": [
+      "backend/app/backtest/engine.py",
+      "backend/app/backtest/runner.py",
+      "backend/app/backtest/stats.py"
+    ],
+    "backend/app/analysis/exits.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/params.py"
+    ],
+    "backend/app/analysis/factor_scorer.py": [
+      "backend/app/analysis/indicators.py",
+      "backend/app/analysis/layers.py",
+      "backend/app/analysis/strategies.py",
+      "backend/app/research/factors.py"
+    ],
+    "backend/app/analysis/indicators.py": [],
+    "backend/app/analysis/layers.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/params.py"
+    ],
+    "backend/app/analysis/params.py": [],
+    "backend/app/analysis/scanner.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/assembler.py",
+      "backend/app/analysis/exits.py",
+      "backend/app/analysis/indicators.py",
+      "backend/app/analysis/params.py",
+      "backend/app/analysis/strategies.py",
+      "backend/app/backtest/runner.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/service.py",
+      "backend/app/data/stock_filter.py",
+      "backend/app/data/twse_client.py"
+    ],
+    "backend/app/analysis/strategies.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/indicators.py",
+      "backend/app/analysis/params.py"
+    ],
+    "backend/app/api/__init__.py": [],
+    "backend/app/api/analysis.py": [
+      "backend/app/analysis/ai_advisor.py",
+      "backend/app/analysis/assembler.py",
+      "backend/app/analysis/indicators.py",
+      "backend/app/api/stocks.py",
+      "backend/app/backtest/runner.py",
+      "backend/app/config.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/service.py"
+    ],
+    "backend/app/api/scanner.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/params.py",
+      "backend/app/analysis/scanner.py",
+      "backend/app/api/stocks.py",
+      "backend/app/data/scheduler.py",
+      "backend/app/data/service.py"
+    ],
+    "backend/app/api/stocks.py": [
+      "backend/app/data/service.py"
+    ],
+    "backend/app/api/watchlist.py": [
+      "backend/app/analysis/assembler.py",
+      "backend/app/api/stocks.py",
+      "backend/app/data/service.py"
+    ],
+    "backend/app/backtest/__init__.py": [
+      "backend/app/backtest/engine.py",
+      "backend/app/backtest/runner.py",
+      "backend/app/backtest/stats.py"
+    ],
+    "backend/app/backtest/engine.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/exits.py",
+      "backend/app/analysis/params.py"
+    ],
+    "backend/app/backtest/runner.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/indicators.py",
+      "backend/app/analysis/layers.py",
+      "backend/app/analysis/params.py",
+      "backend/app/analysis/strategies.py",
+      "backend/app/backtest/engine.py",
+      "backend/app/backtest/stats.py"
+    ],
+    "backend/app/backtest/stats.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/params.py",
+      "backend/app/backtest/engine.py"
+    ],
+    "backend/app/config.py": [],
+    "backend/app/data/__init__.py": [
+      "backend/app/data/cache.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/finmind_client.py",
+      "backend/app/data/publication.py",
+      "backend/app/data/service.py",
+      "backend/app/data/stock_filter.py"
+    ],
+    "backend/app/data/cache.py": [
+      "backend/app/data/publication.py",
+      "backend/app/data/stock_filter.py"
+    ],
+    "backend/app/data/exceptions.py": [],
+    "backend/app/data/finmind_client.py": [
+      "backend/app/config.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/publication.py"
+    ],
+    "backend/app/data/publication.py": [],
+    "backend/app/data/scheduler.py": [
+      "backend/app/analysis/scanner.py",
+      "backend/app/data/service.py",
+      "backend/app/data/twse_client.py"
+    ],
+    "backend/app/data/service.py": [
+      "backend/app/data/cache.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/finmind_client.py",
+      "backend/app/data/stock_filter.py"
+    ],
+    "backend/app/data/stock_filter.py": [],
+    "backend/app/data/twse_client.py": [
+      "backend/app/data/stock_filter.py"
+    ],
+    "backend/app/main.py": [
+      "backend/app/api/analysis.py",
+      "backend/app/api/scanner.py",
+      "backend/app/api/stocks.py",
+      "backend/app/api/watchlist.py",
+      "backend/app/config.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/scheduler.py"
+    ],
+    "backend/app/research/__init__.py": [],
+    "backend/app/research/config.py": [],
+    "backend/app/research/event_study.py": [
+      "backend/app/research/config.py"
+    ],
+    "backend/app/research/factors.py": [
+      "backend/app/analysis/indicators.py",
+      "backend/app/analysis/layers.py",
+      "backend/app/analysis/strategies.py",
+      "backend/app/data/cache.py",
+      "backend/app/research/config.py",
+      "backend/app/research/labels.py"
+    ],
+    "backend/app/research/labels.py": [
+      "backend/app/research/config.py"
+    ],
+    "backend/app/research/report.py": [
+      "backend/app/analysis/params.py",
+      "backend/app/research/config.py",
+      "backend/app/research/event_study.py",
+      "backend/app/research/scoring.py"
+    ],
+    "backend/app/research/scoring.py": [
+      "backend/app/research/config.py",
+      "backend/app/research/event_study.py"
+    ],
+    "backend/pyproject.toml": [],
+    "backend/scripts/run_factor_study.py": [
+      "backend/app/data/cache.py",
+      "backend/app/data/service.py",
+      "backend/app/research/config.py",
+      "backend/app/research/event_study.py",
+      "backend/app/research/factors.py",
+      "backend/app/research/report.py",
+      "backend/app/research/scoring.py"
+    ],
+    "backend/tests/__init__.py": [],
+    "backend/tests/conftest.py": [],
+    "backend/tests/fixtures/finmind/balance_sheet.json": [],
+    "backend/tests/fixtures/finmind/daily_price.json": [],
+    "backend/tests/fixtures/finmind/financial_statements.json": [],
+    "backend/tests/fixtures/finmind/institutional.json": [],
+    "backend/tests/fixtures/finmind/margin_short.json": [],
+    "backend/tests/fixtures/finmind/month_revenue.json": [],
+    "backend/tests/fixtures/finmind/stock_info.json": [],
+    "backend/tests/fixtures/record_fixtures.py": [],
+    "backend/tests/test_ai_advice_api.py": [
+      "backend/app/api/stocks.py",
+      "backend/app/data/cache.py",
+      "backend/app/main.py",
+      "backend/tests/test_analysis_api.py"
+    ],
+    "backend/tests/test_ai_advisor.py": [
+      "backend/app/analysis/ai_advisor.py",
+      "backend/app/analysis/assembler.py",
+      "backend/app/data/exceptions.py"
+    ],
+    "backend/tests/test_analysis_api.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/params.py",
+      "backend/app/api/stocks.py",
+      "backend/app/data/cache.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/finmind_client.py",
+      "backend/app/data/service.py",
+      "backend/app/main.py"
+    ],
+    "backend/tests/test_as_of.py": [
+      "backend/app/data/cache.py"
+    ],
+    "backend/tests/test_assembler.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/assembler.py",
+      "backend/app/analysis/params.py"
+    ],
+    "backend/tests/test_backtest_engine.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/params.py",
+      "backend/app/backtest/engine.py"
+    ],
+    "backend/tests/test_backtest_runner.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/params.py",
+      "backend/app/backtest/runner.py"
+    ],
+    "backend/tests/test_backtest_stats.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/params.py",
+      "backend/app/backtest/engine.py",
+      "backend/app/backtest/stats.py"
+    ],
+    "backend/tests/test_cache.py": [
+      "backend/app/data/cache.py"
+    ],
+    "backend/tests/test_config.py": [
+      "backend/app/config.py"
+    ],
+    "backend/tests/test_exits.py": [
+      "backend/app/analysis/exits.py"
+    ],
+    "backend/tests/test_factor_scorer.py": [
+      "backend/app/analysis/factor_scorer.py"
+    ],
+    "backend/tests/test_finmind_client.py": [
+      "backend/app/data/exceptions.py",
+      "backend/app/data/finmind_client.py"
+    ],
+    "backend/tests/test_health.py": [
+      "backend/app/main.py"
+    ],
+    "backend/tests/test_indicators.py": [
+      "backend/app/analysis/indicators.py"
+    ],
+    "backend/tests/test_layers.py": [
+      "backend/app/analysis/layers.py"
+    ],
+    "backend/tests/test_market_data.py": [
+      "backend/app/data/cache.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/finmind_client.py",
+      "backend/app/data/service.py"
+    ],
+    "backend/tests/test_market_index.py": [
+      "backend/app/data/cache.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/service.py"
+    ],
+    "backend/tests/test_nightly_cache.py": [
+      "backend/app/data/cache.py"
+    ],
+    "backend/tests/test_publication.py": [
+      "backend/app/data/publication.py"
+    ],
+    "backend/tests/test_research_factors.py": [
+      "backend/app/research/config.py",
+      "backend/app/research/factors.py"
+    ],
+    "backend/tests/test_research_labels.py": [
+      "backend/app/research/config.py",
+      "backend/app/research/labels.py"
+    ],
+    "backend/tests/test_research_scoring.py": [
+      "backend/app/research/config.py",
+      "backend/app/research/event_study.py",
+      "backend/app/research/scoring.py"
+    ],
+    "backend/tests/test_scanner.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/params.py",
+      "backend/app/analysis/scanner.py",
+      "backend/app/api/stocks.py",
+      "backend/app/data/cache.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/service.py",
+      "backend/app/main.py"
+    ],
+    "backend/tests/test_scanner_industry_filter.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/params.py",
+      "backend/app/analysis/scanner.py",
+      "backend/app/data/twse_client.py"
+    ],
+    "backend/tests/test_scheduler_api.py": [
+      "backend/app/api/stocks.py",
+      "backend/app/data/cache.py",
+      "backend/app/data/scheduler.py",
+      "backend/app/data/service.py",
+      "backend/app/data/twse_client.py",
+      "backend/app/main.py"
+    ],
+    "backend/tests/test_stock_lookup.py": [
+      "backend/app/api/stocks.py",
+      "backend/app/data/cache.py",
+      "backend/app/data/exceptions.py",
+      "backend/app/data/finmind_client.py",
+      "backend/app/data/service.py",
+      "backend/app/data/stock_filter.py",
+      "backend/app/main.py"
+    ],
+    "backend/tests/test_strategies.py": [
+      "backend/app/analysis/__init__.py",
+      "backend/app/analysis/indicators.py",
+      "backend/app/analysis/params.py",
+      "backend/app/analysis/strategies.py"
+    ],
+    "backend/tests/test_sync.py": [
+      "backend/app/data/cache.py",
+      "backend/app/data/finmind_client.py",
+      "backend/app/data/service.py"
+    ],
+    "backend/tests/test_two_stage_scan.py": [
+      "backend/app/analysis/exits.py",
+      "backend/app/analysis/scanner.py",
+      "backend/app/data/cache.py",
+      "backend/app/data/service.py",
+      "backend/app/data/twse_client.py"
+    ],
+    "backend/tests/test_twse_client.py": [
+      "backend/app/data/twse_client.py"
+    ],
+    "backend/tests/test_watchlist_api.py": [
+      "backend/app/api/stocks.py",
+      "backend/app/data/cache.py",
+      "backend/app/data/service.py",
+      "backend/app/main.py"
+    ],
+    "backend/tests/test_watchlist_cache.py": [
+      "backend/app/data/cache.py"
+    ],
+    "backend/tests/test_watchlist_groups_api.py": [
+      "backend/app/api/stocks.py",
+      "backend/app/data/cache.py",
+      "backend/app/data/service.py",
+      "backend/app/main.py"
+    ],
+    "backend/tests/test_watchlist_groups_cache.py": [
+      "backend/app/data/cache.py"
+    ],
+    "backend/tests/test_watchlist_strategy_and_sync.py": [
+      "backend/app/analysis/assembler.py",
+      "backend/app/api/stocks.py",
+      "backend/app/data/cache.py",
+      "backend/app/data/service.py",
+      "backend/app/main.py"
+    ],
+    "frontend/.oxlintrc.json": [],
+    "frontend/README.md": [],
+    "frontend/index.html": [],
+    "frontend/package.json": [],
+    "frontend/src/AiAdvisorE2E.test.tsx": [
+      "frontend/src/App.tsx",
+      "frontend/src/api/client.ts"
+    ],
+    "frontend/src/App.css": [],
+    "frontend/src/App.test.tsx": [
+      "frontend/src/App.tsx"
+    ],
+    "frontend/src/App.tsx": [
+      "frontend/src/api/client.ts",
+      "frontend/src/components/AiAdvisorCard.tsx",
+      "frontend/src/components/AlertBanner.tsx",
+      "frontend/src/components/Disclaimer.tsx",
+      "frontend/src/components/EvaluationHeader.tsx",
+      "frontend/src/components/LayersSummary.tsx",
+      "frontend/src/components/MarketScanner.tsx",
+      "frontend/src/components/SearchBox.tsx",
+      "frontend/src/components/StockChart.tsx",
+      "frontend/src/components/StrategyTable.tsx",
+      "frontend/src/components/WatchlistView.tsx",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/api/client.ts": [
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/api/nightlyPlan.ts": [
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/AiAdvisorCard.test.tsx": [
+      "frontend/src/api/client.ts",
+      "frontend/src/components/AiAdvisorCard.tsx",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/AiAdvisorCard.tsx": [
+      "frontend/src/api/client.ts",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/AlertBanner.tsx": [
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/Disclaimer.tsx": [],
+    "frontend/src/components/EvaluationHeader.tsx": [],
+    "frontend/src/components/LayersAndAlerts.test.tsx": [
+      "frontend/src/components/AlertBanner.tsx",
+      "frontend/src/components/Disclaimer.tsx",
+      "frontend/src/components/EvaluationHeader.tsx",
+      "frontend/src/components/LayersSummary.tsx",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/LayersSummary.tsx": [
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/MarketScanner.test.tsx": [
+      "frontend/src/components/MarketScanner.tsx",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/MarketScanner.tsx": [
+      "frontend/src/api/client.ts",
+      "frontend/src/api/nightlyPlan.ts",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/SearchBox.test.tsx": [
+      "frontend/src/components/SearchBox.tsx"
+    ],
+    "frontend/src/components/SearchBox.tsx": [
+      "frontend/src/api/client.ts",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/StockChart.test.tsx": [
+      "frontend/src/components/StockChart.tsx",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/StockChart.tsx": [
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/StrategyTable.test.tsx": [
+      "frontend/src/components/StrategyTable.tsx",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/StrategyTable.tsx": [
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/WatchlistView.test.tsx": [
+      "frontend/src/api/client.ts",
+      "frontend/src/components/WatchlistView.tsx",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/components/WatchlistView.tsx": [
+      "frontend/src/api/client.ts",
+      "frontend/src/types/api.ts"
+    ],
+    "frontend/src/index.css": [],
+    "frontend/src/main.tsx": [
+      "frontend/src/App.tsx",
+      "frontend/src/index.css"
+    ],
+    "frontend/src/setupTests.ts": [],
+    "frontend/src/types/api.ts": [],
+    "frontend/tsconfig.app.json": [],
+    "frontend/tsconfig.json": [],
+    "frontend/tsconfig.node.json": [],
+    "frontend/vite.config.ts": [],
+    "openspec/changes/ai-advisor-and-remote-access/.openspec.yaml": [],
+    "openspec/changes/ai-advisor-and-remote-access/design.md": [],
+    "openspec/changes/ai-advisor-and-remote-access/proposal.md": [],
+    "openspec/changes/ai-advisor-and-remote-access/specs/ai-advisor/spec.md": [],
+    "openspec/changes/ai-advisor-and-remote-access/specs/analysis-dashboard/spec.md": [],
+    "openspec/changes/ai-advisor-and-remote-access/tasks.md": [],
+    "openspec/changes/archive/.gitkeep": [],
+    "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/.openspec.yaml": [],
+    "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/design.md": [],
+    "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/proposal.md": [],
+    "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/specs/analysis-dashboard/spec.md": [],
+    "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/specs/market-data/spec.md": [],
+    "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/specs/signal-analysis/spec.md": [],
+    "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/specs/stock-lookup/spec.md": [],
+    "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/specs/strategy-backtest/spec.md": [],
+    "openspec/changes/archive/2026-10-21-add-tw-stock-analyzer/tasks.md": [],
+    "openspec/changes/archive/2026-10-22-add-market-scanner/.openspec.yaml": [],
+    "openspec/changes/archive/2026-10-22-add-market-scanner/design.md": [],
+    "openspec/changes/archive/2026-10-22-add-market-scanner/proposal.md": [],
+    "openspec/changes/archive/2026-10-22-add-market-scanner/specs/analysis-dashboard/spec.md": [],
+    "openspec/changes/archive/2026-10-22-add-market-scanner/specs/market-scanner/spec.md": [],
+    "openspec/changes/archive/2026-10-22-add-market-scanner/tasks.md": [],
+    "openspec/changes/archive/2026-10-26-add-chart-indicators/.openspec.yaml": [],
+    "openspec/changes/archive/2026-10-26-add-chart-indicators/design.md": [],
+    "openspec/changes/archive/2026-10-26-add-chart-indicators/proposal.md": [],
+    "openspec/changes/archive/2026-10-26-add-chart-indicators/specs/analysis-dashboard/spec.md": [],
+    "openspec/changes/archive/2026-10-26-add-chart-indicators/tasks.md": [],
+    "openspec/changes/archive/2026-10-27-add-factor-event-study/.openspec.yaml": [],
+    "openspec/changes/archive/2026-10-27-add-factor-event-study/design.md": [],
+    "openspec/changes/archive/2026-10-27-add-factor-event-study/proposal.md": [],
+    "openspec/changes/archive/2026-10-27-add-factor-event-study/specs/factor-research/spec.md": [],
+    "openspec/changes/archive/2026-10-27-add-factor-event-study/specs/market-data/spec.md": [],
+    "openspec/changes/archive/2026-10-27-add-factor-event-study/tasks.md": [],
+    "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/.openspec.yaml": [],
+    "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/design.md": [],
+    "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/proposal.md": [],
+    "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/specs/analysis-dashboard/spec.md": [],
+    "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/specs/market-scanner/spec.md": [],
+    "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/specs/watchlist/spec.md": [],
+    "openspec/changes/archive/2026-10-27-add-watchlist-and-chart-analytics/tasks.md": [],
+    "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/.openspec.yaml": [],
+    "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/design.md": [],
+    "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/proposal.md": [],
+    "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/specs/market-scanner/spec.md": [],
+    "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/specs/watchlist/spec.md": [],
+    "openspec/changes/archive/2026-10-27-enhance-watchlist-groups-and-scanner-filter/tasks.md": [],
+    "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/.openspec.yaml": [],
+    "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/design.md": [],
+    "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/proposal.md": [],
+    "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/specs/analysis-dashboard/spec.md": [],
+    "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/specs/market-scanner/spec.md": [],
+    "openspec/changes/archive/2026-10-27-integrate-factor-scoring-scanner/tasks.md": [],
+    "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/.openspec.yaml": [],
+    "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/design.md": [],
+    "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/proposal.md": [],
+    "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/specs/market-scanner/spec.md": [],
+    "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/specs/nightly-scheduler/spec.md": [],
+    "openspec/changes/archive/2026-10-27-nightly-market-scan-scheduler/tasks.md": [],
+    "openspec/config.yaml": [],
+    "openspec/specs/.gitkeep": [],
+    "openspec/specs/analysis-dashboard/spec.md": [],
+    "openspec/specs/factor-research/spec.md": [],
+    "openspec/specs/market-data/spec.md": [],
+    "openspec/specs/market-scanner/spec.md": [],
+    "openspec/specs/nightly-scheduler/spec.md": [],
+    "openspec/specs/signal-analysis/spec.md": [],
+    "openspec/specs/stock-lookup/spec.md": [],
+    "openspec/specs/strategy-backtest/spec.md": [],
+    "openspec/specs/watchlist/spec.md": []
+  }
+}

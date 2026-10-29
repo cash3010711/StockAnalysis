@@ -1,0 +1,1346 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "Taiwan Stock Swing Strategy Analyzer (台股波段策略分析儀)",
+    "languages": [
+      "Python",
+      "TypeScript"
+    ],
+    "frameworks": [
+      "FastAPI",
+      "React",
+      "Vite",
+      "pandas",
+      "TradingView Lightweight Charts"
+    ],
+    "description": "Taiwan stock swing trading and multi-layer verification platform, featuring TWSE/TPEx daily quote screening, point-in-time fundamental/chips verification, empirical factor scoring, backtesting, and AI advisor interpretation.",
+    "analyzedAt": "2026-10-29T11:18:00+08:00",
+    "gitCommitHash": "17781c9813056e234bd9cc64c113d9c962413b51"
+  },
+  "nodes": [
+    {
+      "id": "domain:market-data",
+      "type": "domain",
+      "name": "Market Data & Ingestion",
+      "summary": "Handles Taiwan stock market data ingestion across TWSE, TPEx, and FinMind API. Enforces strict security filtering to only support common stocks while preserving point-in-time correctness for monthly revenues and quarterly financial statements.",
+      "tags": [
+        "market-data",
+        "twse",
+        "tpex",
+        "finmind",
+        "point-in-time",
+        "sqlite-cache"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entities": [
+          "DailyQuote",
+          "SecurityFilter",
+          "PublicationCalendar",
+          "FinMindClient",
+          "DataCache"
+        ],
+        "businessRules": [
+          "Only TWSE and TPEx common stocks supported; exclude ETFs, ETNs, warrants, and emerging stocks",
+          "Point-in-time correctness: monthly revenue published by 10th of following month; quarterly statements matched with zero lookahead bias",
+          "FinMind API rate quota (600 req/hr) management with automatic fallback to local SQLite cache"
+        ],
+        "crossDomainInteractions": [
+          "Provides historical price OHLCV and volume series to Strategy Analysis and Backtest & Research",
+          "Provides point-in-time revenue, balance sheet, and institutional chip data to Multi-Layer Evaluation",
+          "Provides batch daily quote summaries to Market Scanner for fast Stage 1 candidate screening"
+        ]
+      }
+    },
+    {
+      "id": "flow:fetch-market-quotes",
+      "type": "flow",
+      "name": "Fetch All-Market Daily Quotes",
+      "summary": "Ingests daily closing prices and trading volumes for all listed securities from TWSE and TPEx exchanges and filters out non-common stocks.",
+      "tags": [
+        "twse",
+        "tpex",
+        "quotes",
+        "screening"
+      ],
+      "complexity": "simple",
+      "domainMeta": {
+        "entryPoint": "GET /api/stocks",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:fetch-market-quotes:request-twse-quotes",
+      "type": "step",
+      "name": "Request TWSE Daily Quotes",
+      "filePath": "backend/app/data/twse_client.py",
+      "lineRange": [
+        92,
+        161
+      ],
+      "summary": "Downloads and parses the TWSE MI_INDEX daily market close table for all listed securities.",
+      "tags": [
+        "twse",
+        "http-client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:fetch-market-quotes:request-tpex-quotes",
+      "type": "step",
+      "name": "Request TPEx Daily Quotes",
+      "filePath": "backend/app/data/twse_client.py",
+      "lineRange": [
+        163,
+        250
+      ],
+      "summary": "Fetches TPEx over-the-counter daily closing quotes via OpenAPI with fallback to HTML parsing.",
+      "tags": [
+        "tpex",
+        "http-client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:fetch-market-quotes:filter-common-stocks",
+      "type": "step",
+      "name": "Filter Supported Common Stocks",
+      "filePath": "backend/app/data/stock_filter.py",
+      "lineRange": [
+        8,
+        60
+      ],
+      "summary": "Applies security filtering rules to eliminate emerging stocks, ETFs, ETNs, and warrants.",
+      "tags": [
+        "security-filter",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "flow:sync-stock-history",
+      "type": "flow",
+      "name": "Synchronize Historical Stock Datasets",
+      "summary": "Synchronizes historical daily prices, monthly revenues, and balance sheets via FinMind with local SQLite caching and effective date tagging.",
+      "tags": [
+        "finmind",
+        "cache-sync",
+        "point-in-time"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "DataService.sync_stock_data",
+        "entryType": "manual"
+      }
+    },
+    {
+      "id": "step:sync-stock-history:check-cache-freshness",
+      "type": "step",
+      "name": "Check Local SQLite Cache",
+      "filePath": "backend/app/data/cache.py",
+      "lineRange": [
+        75,
+        140
+      ],
+      "summary": "Inspects existing SQLite database records to identify missing date ranges and avoid unnecessary API calls.",
+      "tags": [
+        "sqlite",
+        "cache-check"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:sync-stock-history:fetch-finmind-datasets",
+      "type": "step",
+      "name": "Fetch Datasets from FinMind API",
+      "filePath": "backend/app/data/finmind_client.py",
+      "lineRange": [
+        85,
+        180
+      ],
+      "summary": "Retrieves incremental price, revenue, margin trading, and institutional investor datasets with quota checking.",
+      "tags": [
+        "finmind",
+        "data-fetch"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:sync-stock-history:calculate-effective-dates",
+      "type": "step",
+      "name": "Calculate Point-in-Time Effective Dates",
+      "filePath": "backend/app/data/publication.py",
+      "lineRange": [
+        12,
+        74
+      ],
+      "summary": "Assigns statutory announcement dates for revenue (10th of following month) and financial reports to prevent lookahead bias.",
+      "tags": [
+        "point-in-time",
+        "publication"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:sync-stock-history:persist-cache",
+      "type": "step",
+      "name": "Persist to SQLite Cache",
+      "filePath": "backend/app/data/cache.py",
+      "lineRange": [
+        145,
+        210
+      ],
+      "summary": "Saves refreshed records and updates the metadata cache index with transaction safety.",
+      "tags": [
+        "sqlite",
+        "persistence"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "domain:strategy-analysis",
+      "type": "domain",
+      "name": "Strategy Analysis & Multi-Layer Evaluation",
+      "summary": "Conducts multi-layer quantitative evaluation on individual Taiwan stocks, combining technical indicators, fundamental growth, institutional chips, empirical factor scoring, and exchange tick-compliant exit rules.",
+      "tags": [
+        "technical-analysis",
+        "multi-layer",
+        "factor-scoring",
+        "exit-levels",
+        "turtle-trading"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "TodayAnalysis",
+          "FundamentalSummary",
+          "ChipsSummary",
+          "StrategyAnalysisResult",
+          "ExitLevels",
+          "FactorScorer"
+        ],
+        "businessRules": [
+          "Fundamental layer requires YoY revenue growth > 0%, positive trailing 4Q EPS, and debt ratio <= 60%",
+          "Chips layer verifies 10-day foreign and investment trust net buying > 0 and controlled margin borrowing",
+          "Exit levels determined using 14-day ATR: stop loss at -2*ATR, profit target at +3*ATR, rounded to Taiwan exchange tick increments",
+          "Factor scoring applies frozen empirical weights derived from 5-year event studies with out-of-sample decile benchmarks"
+        ],
+        "crossDomainInteractions": [
+          "Consumes daily quotes and point-in-time data from Market Data",
+          "Feeds single stock evaluation signals and exit levels to Market Scanner and Watchlist Management",
+          "Supplies structured quantitative metrics and indicator summaries to AI Advisor"
+        ]
+      }
+    },
+    {
+      "id": "flow:evaluate-single-stock",
+      "type": "flow",
+      "name": "Evaluate Single Stock Analysis & Exits",
+      "summary": "Executes full three-layer verification (fundamental, chips, technical), evaluates strategy buy signals, and calculates ATR-based exit levels.",
+      "tags": [
+        "stock-evaluation",
+        "indicators",
+        "three-layer",
+        "exits"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "GET /api/analysis/{stock_id}",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:evaluate-single-stock:compute-indicators",
+      "type": "step",
+      "name": "Compute Technical Indicators",
+      "filePath": "backend/app/analysis/indicators.py",
+      "lineRange": [
+        15,
+        110
+      ],
+      "summary": "Calculates moving averages (MA5/20/60), ATR14, RSI, MACD, KD, and volume expansion indicators.",
+      "tags": [
+        "indicators",
+        "pandas"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:evaluate-single-stock:evaluate-layers",
+      "type": "step",
+      "name": "Evaluate Fundamental and Chips Layers",
+      "filePath": "backend/app/analysis/layers.py",
+      "lineRange": [
+        85,
+        210
+      ],
+      "summary": "Evaluates YoY revenue growth, trailing 4Q EPS, debt ratio, and 10-day institutional chip accumulation using pd.merge_asof.",
+      "tags": [
+        "fundamental-layer",
+        "chips-layer"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:evaluate-single-stock:evaluate-strategies",
+      "type": "step",
+      "name": "Evaluate Trading Strategies",
+      "filePath": "backend/app/analysis/strategies.py",
+      "lineRange": [
+        65,
+        185
+      ],
+      "summary": "Tests trigger conditions across 5 swing strategies: trend pullback, 20-day breakout, MACD cross, KD cross, and Bollinger breakout.",
+      "tags": [
+        "strategies",
+        "signals"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:evaluate-single-stock:calculate-exits",
+      "type": "step",
+      "name": "Calculate ATR Exits and Round to Tick",
+      "filePath": "backend/app/analysis/exits.py",
+      "lineRange": [
+        32,
+        60
+      ],
+      "summary": "Calculates stop loss at entry - 2*ATR, take profit at entry + 3*ATR, and rounds to Taiwan stock tick boundaries.",
+      "tags": [
+        "exit-levels",
+        "tick-size"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:evaluate-single-stock:assemble-analysis",
+      "type": "step",
+      "name": "Assemble Today Analysis Summary",
+      "filePath": "backend/app/analysis/assembler.py",
+      "lineRange": [
+        115,
+        210
+      ],
+      "summary": "Aggregates layer evaluations, strategy signals, backtest statistics, and exit plans into a unified TodayAnalysis object.",
+      "tags": [
+        "assembler",
+        "payload"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "flow:calculate-factor-score",
+      "type": "flow",
+      "name": "Calculate Multi-Factor Score & Decile",
+      "summary": "Computes composite multi-factor score from empirical event-study weights and assigns the stock to its performance decile.",
+      "tags": [
+        "factor-scoring",
+        "decile",
+        "empirical-lift"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "evaluate_stock_factor_score",
+        "entryType": "manual"
+      }
+    },
+    {
+      "id": "step:calculate-factor-score:extract-factor-signals",
+      "type": "step",
+      "name": "Extract Quantitative Factor Signals",
+      "filePath": "backend/app/analysis/factor_scorer.py",
+      "lineRange": [
+        85,
+        145
+      ],
+      "summary": "Evaluates 15 factor criteria including Relative Strength (RS), 20-day breakout, revenue acceleration, and institutional volume ratio.",
+      "tags": [
+        "factors",
+        "signal-extraction"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:calculate-factor-score:apply-frozen-weights",
+      "type": "step",
+      "name": "Apply Frozen Empirical Weights",
+      "filePath": "backend/app/analysis/factor_scorer.py",
+      "lineRange": [
+        148,
+        180
+      ],
+      "summary": "Multiplies triggered factors by weights calibrated over 5-year event study to generate raw composite score.",
+      "tags": [
+        "weights",
+        "empirical-model"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:calculate-factor-score:map-decile-benchmark",
+      "type": "step",
+      "name": "Normalize Score and Map Decile Benchmark",
+      "filePath": "backend/app/analysis/factor_scorer.py",
+      "lineRange": [
+        182,
+        220
+      ],
+      "summary": "Normalizes score to 0-100 scale and looks up out-of-sample benchmark hit rate and lift multiplier.",
+      "tags": [
+        "decile",
+        "benchmark"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "domain:market-scanner",
+      "type": "domain",
+      "name": "Market Scanner & Nightly Plan",
+      "summary": "Executes broad two-stage screening across the entire universe of ~2,000 Taiwan common stocks and powers scheduled nightly batch scans with real-time SSE streaming updates.",
+      "tags": [
+        "scanner",
+        "two-stage-filter",
+        "nightly-plan",
+        "apscheduler",
+        "sse-streaming"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "ScanFilterConfig",
+          "TwoStageFilter",
+          "NightlyPlanRecord",
+          "ScanEventStream"
+        ],
+        "businessRules": [
+          "Stage 1 filters entire market on trading volume (>= 1,000 lots) and minimum price (>= 10 TWD) using fast quote summary",
+          "Stage 2 executes deep 3-layer analysis and backtest win rates on top candidate stocks",
+          "Automated nightly execution runs at 18:30 Taipei time on trading days to produce nightly swing trading candidate plans"
+        ],
+        "crossDomainInteractions": [
+          "Consumes all-market quote summaries from Market Data",
+          "Invokes Strategy Analysis for Stage 2 candidate evaluation",
+          "Exports qualified candidate setups directly to Watchlist Management"
+        ]
+      }
+    },
+    {
+      "id": "flow:run-two-stage-scan",
+      "type": "flow",
+      "name": "Run Two-Stage Market Scan",
+      "summary": "Screens ~2,000 stocks with fast Stage 1 volume/price pre-filter, evaluates top candidates through 3-layer analysis in Stage 2, and streams progress.",
+      "tags": [
+        "two-stage-scan",
+        "screening",
+        "streaming"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "POST /api/scanner/run",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:run-two-stage-scan:filter-stage1-pool",
+      "type": "step",
+      "name": "Filter Stage 1 Stock Pool",
+      "filePath": "backend/app/analysis/scanner.py",
+      "lineRange": [
+        110,
+        195
+      ],
+      "summary": "Scans all market quotes to filter for common stocks with volume >= 1000 lots and price >= 10 TWD, sorting by turnover.",
+      "tags": [
+        "stage-1",
+        "fast-filter"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:run-two-stage-scan:analyze-stage2-candidates",
+      "type": "step",
+      "name": "Analyze Stage 2 Candidates",
+      "filePath": "backend/app/analysis/scanner.py",
+      "lineRange": [
+        380,
+        450
+      ],
+      "summary": "Executes deep indicators, 3-layer verification, and factor scoring on shortlisted candidate stocks.",
+      "tags": [
+        "stage-2",
+        "deep-analysis"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "step:run-two-stage-scan:rank-and-sort",
+      "type": "step",
+      "name": "Rank Matched Candidates",
+      "filePath": "backend/app/analysis/scanner.py",
+      "lineRange": [
+        563,
+        579
+      ],
+      "summary": "Sorts qualified setups primarily by multi-factor score descending, then by strategy win rate.",
+      "tags": [
+        "ranking",
+        "sorting"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:run-two-stage-scan:stream-events",
+      "type": "step",
+      "name": "Stream Real-Time Scan Events",
+      "filePath": "backend/app/analysis/scanner.py",
+      "lineRange": [
+        451,
+        530
+      ],
+      "summary": "Emits Server-Sent Events for start, progress, matched candidates, and completion.",
+      "tags": [
+        "sse",
+        "streaming"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "flow:execute-nightly-scan",
+      "type": "flow",
+      "name": "Execute Nightly Scheduled Scan",
+      "summary": "Executes automated after-market two-stage scan at 18:30 Taipei time on trading days and persists the nightly plan to cache.",
+      "tags": [
+        "nightly-plan",
+        "cron",
+        "apscheduler"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Cron at 18:30 Taipei Time (Mon-Fri)",
+        "entryType": "cron"
+      }
+    },
+    {
+      "id": "step:execute-nightly-scan:verify-trading-day",
+      "type": "step",
+      "name": "Verify Trading Day and Schedule",
+      "filePath": "backend/app/data/scheduler.py",
+      "lineRange": [
+        45,
+        80
+      ],
+      "summary": "Checks Taipei timezone calendar to ensure current day is a valid market trading day.",
+      "tags": [
+        "calendar",
+        "trading-day"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:execute-nightly-scan:run-batch-scanner",
+      "type": "step",
+      "name": "Run Automated Two-Stage Scan",
+      "filePath": "backend/app/data/scheduler.py",
+      "lineRange": [
+        85,
+        125
+      ],
+      "summary": "Triggers run_two_stage_scan with latest market quotes and incremental FinMind synchronization.",
+      "tags": [
+        "batch-scan",
+        "orchestration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:execute-nightly-scan:save-nightly-plan",
+      "type": "step",
+      "name": "Save Nightly Plan to Database",
+      "filePath": "backend/app/data/cache.py",
+      "lineRange": [
+        280,
+        340
+      ],
+      "summary": "Stores ranked candidate stocks and entry/exit setups into SQLite nightly_plan table for fast frontend retrieval.",
+      "tags": [
+        "sqlite",
+        "nightly-cache"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "domain:backtest-research",
+      "type": "domain",
+      "name": "Backtesting & Factor Research",
+      "summary": "Simulates swing trading strategies with an event-driven daily state machine incorporating transaction fees, and performs out-of-sample factor event studies with purged cross-validation.",
+      "tags": [
+        "backtest",
+        "state-machine",
+        "event-study",
+        "purged-cv",
+        "quantitative-research"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "Trade",
+          "BacktestStats",
+          "EquityPoint",
+          "StudyConfig",
+          "FactorStat"
+        ],
+        "businessRules": [
+          "Enter at next day open following a signal day; enforce non-overlapping positions per strategy",
+          "Incorporate Taiwan market trading costs: 0.1425% broker fee on buy/sell and 0.3% transaction tax on sell",
+          "Exit triggers prioritized: gap-down below stop loss, intraday stop loss hit, take profit target reached, or 20-day holding limit",
+          "Factor research utilizes purged training/testing splits to measure information coefficient (IC) and decile lift"
+        ],
+        "crossDomainInteractions": [
+          "Consumes historical prices and factor series from Market Data and Strategy Analysis",
+          "Provides backtest win rates and profit factors to Strategy Analysis and Market Scanner"
+        ]
+      }
+    },
+    {
+      "id": "flow:simulate-strategy-backtest",
+      "type": "flow",
+      "name": "Simulate Strategy Backtest",
+      "summary": "Runs historical trade simulation on individual stocks across strategies using non-overlapping positions and realistic exit rules.",
+      "tags": [
+        "backtest",
+        "simulation",
+        "performance-stats"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "run_all_backtests",
+        "entryType": "manual"
+      }
+    },
+    {
+      "id": "step:simulate-strategy-backtest:generate-signals",
+      "type": "step",
+      "name": "Generate Historical Strategy Signals",
+      "filePath": "backend/app/backtest/runner.py",
+      "lineRange": [
+        40,
+        95
+      ],
+      "summary": "Evaluates signal rules across historical OHLCV data to locate buy entry dates.",
+      "tags": [
+        "signal-generation",
+        "strategies"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:simulate-strategy-backtest:simulate-daily-trades",
+      "type": "step",
+      "name": "Simulate Daily State Machine Trades",
+      "filePath": "backend/app/backtest/engine.py",
+      "lineRange": [
+        75,
+        175
+      ],
+      "summary": "Executes daily trade transitions: next-day open entry, ATR stop loss/take profit checks, 20-day max holding, and transaction fee deduction.",
+      "tags": [
+        "state-machine",
+        "trade-simulation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "step:simulate-strategy-backtest:compute-performance-stats",
+      "type": "step",
+      "name": "Compute Performance Statistics",
+      "filePath": "backend/app/backtest/stats.py",
+      "lineRange": [
+        35,
+        120
+      ],
+      "summary": "Calculates total trades, win rate %, profit factor, max drawdown %, and equity curve time series.",
+      "tags": [
+        "stats",
+        "equity-curve"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "flow:run-factor-study",
+      "type": "flow",
+      "name": "Run Factor Event Study & Research Report",
+      "summary": "Conducts statistical event studies on stock selection factors across 5 years with purged train/test splitting and lift calculation.",
+      "tags": [
+        "event-study",
+        "factor-research",
+        "lift-metrics"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "python backend/scripts/run_factor_study.py",
+        "entryType": "cli"
+      }
+    },
+    {
+      "id": "step:run-factor-study:load-dataset-split",
+      "type": "step",
+      "name": "Load Dataset and Purged Split",
+      "filePath": "backend/app/research/config.py",
+      "lineRange": [
+        15,
+        50
+      ],
+      "summary": "Configures train period (2021-2024), test period (2025+), and 20-day purge buffer to eliminate label leakage.",
+      "tags": [
+        "dataset",
+        "purged-cv"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:run-factor-study:compute-forward-labels",
+      "type": "step",
+      "name": "Compute Forward Return Labels",
+      "filePath": "backend/app/research/labels.py",
+      "lineRange": [
+        25,
+        90
+      ],
+      "summary": "Calculates 20-day forward return outcomes, +15% target gains, and -7% stop-loss events for every trading day.",
+      "tags": [
+        "labels",
+        "triple-barrier"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:run-factor-study:calculate-lift-and-ci",
+      "type": "step",
+      "name": "Calculate Factor Lift and Confidence Intervals",
+      "filePath": "backend/app/research/event_study.py",
+      "lineRange": [
+        75,
+        180
+      ],
+      "summary": "Computes hit rates, benchmark baselines, lift multipliers, and 95% Wilson score confidence intervals for all candidate factors.",
+      "tags": [
+        "statistics",
+        "lift",
+        "wilson-ci"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "domain:watchlist-management",
+      "type": "domain",
+      "name": "Watchlist & Portfolio Tracking",
+      "summary": "Provides personalized tracking for shortlisted swing trading candidates, custom user groups, entry targets, and synchronized live market quote updates.",
+      "tags": [
+        "watchlist",
+        "custom-groups",
+        "market-sync",
+        "target-tracking"
+      ],
+      "complexity": "simple",
+      "domainMeta": {
+        "entities": [
+          "WatchlistItem",
+          "WatchlistGroup",
+          "StockGroupMapping",
+          "TargetExitPlan"
+        ],
+        "businessRules": [
+          "Prevent duplicate stock entries in watchlist",
+          "Allow arbitrary tagging of stocks into multiple custom watchlist groups",
+          "Batch update returns, current price, and strategy trigger alerts against the latest market prices"
+        ],
+        "crossDomainInteractions": [
+          "Receives candidate additions from Market Scanner and Strategy Analysis",
+          "Queries Market Data for batch price updates and returns calculations"
+        ]
+      }
+    },
+    {
+      "id": "flow:manage-watchlist-items",
+      "type": "flow",
+      "name": "Manage Watchlist Items and Groups",
+      "summary": "Enables users to add stocks to watchlist, assign them to custom groups, edit target levels, and remove tracked stocks.",
+      "tags": [
+        "watchlist-crud",
+        "groups",
+        "targets"
+      ],
+      "complexity": "simple",
+      "domainMeta": {
+        "entryPoint": "POST /api/watchlist",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:manage-watchlist-items:validate-and-lookup",
+      "type": "step",
+      "name": "Validate Stock and Lookup Baseline",
+      "filePath": "backend/app/api/watchlist.py",
+      "lineRange": [
+        325,
+        360
+      ],
+      "summary": "Validates stock code, retrieves official stock name, and auto-populates initial baseline price.",
+      "tags": [
+        "stock-lookup",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:manage-watchlist-items:persist-watchlist",
+      "type": "step",
+      "name": "Persist Watchlist Record and Groups",
+      "filePath": "backend/app/data/cache.py",
+      "lineRange": [
+        220,
+        275
+      ],
+      "summary": "Inserts or updates the watchlist item with stop loss, target profit, notes, and group relations in SQLite.",
+      "tags": [
+        "sqlite",
+        "watchlist-storage"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "flow:sync-watchlist-market",
+      "type": "flow",
+      "name": "Synchronize Watchlist Market Data",
+      "summary": "Batch updates all watchlist stocks with current market prices, calculated returns %, and updated strategy trigger statuses.",
+      "tags": [
+        "market-sync",
+        "returns",
+        "batch-update"
+      ],
+      "complexity": "simple",
+      "domainMeta": {
+        "entryPoint": "POST /api/watchlist/sync",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:sync-watchlist-market:load-watchlist-stocks",
+      "type": "step",
+      "name": "Load Watchlist Stocks",
+      "filePath": "backend/app/api/watchlist.py",
+      "lineRange": [
+        170,
+        185
+      ],
+      "summary": "Retrieves the list of active tracked stocks and their entry prices from SQLite.",
+      "tags": [
+        "sqlite",
+        "data-load"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:sync-watchlist-market:fetch-latest-quotes",
+      "type": "step",
+      "name": "Fetch Latest Quotes and Compute Returns",
+      "filePath": "backend/app/api/watchlist.py",
+      "lineRange": [
+        186,
+        200
+      ],
+      "summary": "Batch fetches the latest quotes from TWSE/TPEx and recalculates change % and return % for each watchlist item.",
+      "tags": [
+        "quote-sync",
+        "return-calculation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "domain:ai-advisor",
+      "type": "domain",
+      "name": "AI Strategy Advisor",
+      "summary": "Integrates Google Gemini to translate quantitative indicators, multi-layer verification results, and historical backtest metrics into structured narrative trading advice via Server-Sent Events.",
+      "tags": [
+        "ai-advisor",
+        "gemini-api",
+        "sse-streaming",
+        "prompt-engineering",
+        "disclaimer-enforced"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entities": [
+          "AdvisorPrompt",
+          "AiAdviceStream",
+          "GeminiApiClient"
+        ],
+        "businessRules": [
+          "Mandatory compliance disclaimer: advisory statements are academic quantitative research, not financial advice",
+          "Stream generated insights in real-time using Server-Sent Events (SSE)",
+          "Graceful fallback with clear configuration guidance when GEMINI_API_KEY is not configured"
+        ],
+        "crossDomainInteractions": [
+          "Ingests compiled TodayAnalysis and indicator records from Strategy Analysis",
+          "Delivers streaming narrative insights to Frontend UI"
+        ]
+      }
+    },
+    {
+      "id": "flow:generate-ai-advice",
+      "type": "flow",
+      "name": "Generate Real-Time AI Swing Strategy Advice",
+      "summary": "Constructs structured quantitative context and streams Gemini AI interpretation of entry/exit strategy setups via Server-Sent Events.",
+      "tags": [
+        "ai-advice",
+        "gemini",
+        "sse",
+        "llm-prompt"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "GET /api/analysis/{stock_id}/ai-advice",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:generate-ai-advice:verify-gemini-key",
+      "type": "step",
+      "name": "Verify Gemini API Configuration",
+      "filePath": "backend/app/config.py",
+      "lineRange": [
+        35,
+        55
+      ],
+      "summary": "Checks GEMINI_API_KEY presence in environment, returning clear configuration instructions if missing.",
+      "tags": [
+        "config",
+        "api-key"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "step:generate-ai-advice:build-prompt",
+      "type": "step",
+      "name": "Build Structured Quantitative Prompt",
+      "filePath": "backend/app/analysis/ai_advisor.py",
+      "lineRange": [
+        12,
+        95
+      ],
+      "summary": "Synthesizes latest technical indicators, 3-layer verification details, exit targets, and factor score into a structured prompt.",
+      "tags": [
+        "prompt-engineering",
+        "analysis-context"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "step:generate-ai-advice:stream-gemini-chunks",
+      "type": "step",
+      "name": "Stream Gemini AI Response Chunks",
+      "filePath": "backend/app/analysis/ai_advisor.py",
+      "lineRange": [
+        130,
+        195
+      ],
+      "summary": "Invokes Google Gemini streaming API and yields incremental text chunks formatted for SSE typewriter display.",
+      "tags": [
+        "gemini-api",
+        "sse-streaming"
+      ],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "domain:market-data",
+      "target": "flow:fetch-market-quotes",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:market-data",
+      "target": "flow:sync-stock-history",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:strategy-analysis",
+      "target": "flow:evaluate-single-stock",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:strategy-analysis",
+      "target": "flow:calculate-factor-score",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:market-scanner",
+      "target": "flow:run-two-stage-scan",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:market-scanner",
+      "target": "flow:execute-nightly-scan",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:backtest-research",
+      "target": "flow:simulate-strategy-backtest",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:backtest-research",
+      "target": "flow:run-factor-study",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:watchlist-management",
+      "target": "flow:manage-watchlist-items",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:watchlist-management",
+      "target": "flow:sync-watchlist-market",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:ai-advisor",
+      "target": "flow:generate-ai-advice",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:fetch-market-quotes",
+      "target": "step:fetch-market-quotes:request-twse-quotes",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.33
+    },
+    {
+      "source": "flow:fetch-market-quotes",
+      "target": "step:fetch-market-quotes:request-tpex-quotes",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.67
+    },
+    {
+      "source": "flow:fetch-market-quotes",
+      "target": "step:fetch-market-quotes:filter-common-stocks",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:sync-stock-history",
+      "target": "step:sync-stock-history:check-cache-freshness",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.25
+    },
+    {
+      "source": "flow:sync-stock-history",
+      "target": "step:sync-stock-history:fetch-finmind-datasets",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:sync-stock-history",
+      "target": "step:sync-stock-history:calculate-effective-dates",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.75
+    },
+    {
+      "source": "flow:sync-stock-history",
+      "target": "step:sync-stock-history:persist-cache",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:evaluate-single-stock",
+      "target": "step:evaluate-single-stock:compute-indicators",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:evaluate-single-stock",
+      "target": "step:evaluate-single-stock:evaluate-layers",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:evaluate-single-stock",
+      "target": "step:evaluate-single-stock:evaluate-strategies",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:evaluate-single-stock",
+      "target": "step:evaluate-single-stock:calculate-exits",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:evaluate-single-stock",
+      "target": "step:evaluate-single-stock:assemble-analysis",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:calculate-factor-score",
+      "target": "step:calculate-factor-score:extract-factor-signals",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.33
+    },
+    {
+      "source": "flow:calculate-factor-score",
+      "target": "step:calculate-factor-score:apply-frozen-weights",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.67
+    },
+    {
+      "source": "flow:calculate-factor-score",
+      "target": "step:calculate-factor-score:map-decile-benchmark",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:run-two-stage-scan",
+      "target": "step:run-two-stage-scan:filter-stage1-pool",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.25
+    },
+    {
+      "source": "flow:run-two-stage-scan",
+      "target": "step:run-two-stage-scan:analyze-stage2-candidates",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:run-two-stage-scan",
+      "target": "step:run-two-stage-scan:rank-and-sort",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.75
+    },
+    {
+      "source": "flow:run-two-stage-scan",
+      "target": "step:run-two-stage-scan:stream-events",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:execute-nightly-scan",
+      "target": "step:execute-nightly-scan:verify-trading-day",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.33
+    },
+    {
+      "source": "flow:execute-nightly-scan",
+      "target": "step:execute-nightly-scan:run-batch-scanner",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.67
+    },
+    {
+      "source": "flow:execute-nightly-scan",
+      "target": "step:execute-nightly-scan:save-nightly-plan",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:simulate-strategy-backtest",
+      "target": "step:simulate-strategy-backtest:generate-signals",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.33
+    },
+    {
+      "source": "flow:simulate-strategy-backtest",
+      "target": "step:simulate-strategy-backtest:simulate-daily-trades",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.67
+    },
+    {
+      "source": "flow:simulate-strategy-backtest",
+      "target": "step:simulate-strategy-backtest:compute-performance-stats",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:run-factor-study",
+      "target": "step:run-factor-study:load-dataset-split",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.33
+    },
+    {
+      "source": "flow:run-factor-study",
+      "target": "step:run-factor-study:compute-forward-labels",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.67
+    },
+    {
+      "source": "flow:run-factor-study",
+      "target": "step:run-factor-study:calculate-lift-and-ci",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:manage-watchlist-items",
+      "target": "step:manage-watchlist-items:validate-and-lookup",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:manage-watchlist-items",
+      "target": "step:manage-watchlist-items:persist-watchlist",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:sync-watchlist-market",
+      "target": "step:sync-watchlist-market:load-watchlist-stocks",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:sync-watchlist-market",
+      "target": "step:sync-watchlist-market:fetch-latest-quotes",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:generate-ai-advice",
+      "target": "step:generate-ai-advice:verify-gemini-key",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.33
+    },
+    {
+      "source": "flow:generate-ai-advice",
+      "target": "step:generate-ai-advice:build-prompt",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.67
+    },
+    {
+      "source": "flow:generate-ai-advice",
+      "target": "step:generate-ai-advice:stream-gemini-chunks",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:market-data",
+      "target": "domain:strategy-analysis",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Provides price series and point-in-time financial/chip data for indicator calculation and multi-layer verification",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:market-data",
+      "target": "domain:market-scanner",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Provides all-market daily quote summaries for fast Stage 1 volume and price screening",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:market-data",
+      "target": "domain:watchlist-management",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Provides latest prices for watchlist return calculation and real-time synchronization",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:strategy-analysis",
+      "target": "domain:market-scanner",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Executes deep 3-layer analysis and factor scoring on Stage 2 candidate stocks",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:strategy-analysis",
+      "target": "domain:ai-advisor",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Supplies assembled indicator metrics, layer verification statuses, and exit plans for AI narrative synthesis",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:strategy-analysis",
+      "target": "domain:backtest-research",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Supplies strategy trigger conditions and multi-factor signals for simulation and event studies",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:backtest-research",
+      "target": "domain:strategy-analysis",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Provides empirical factor weights, decile benchmarks, and strategy win rates to the evaluation assembler",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:market-scanner",
+      "target": "domain:watchlist-management",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Allows one-click addition of screened candidate setups directly into tracked watchlists",
+      "weight": 0.6
+    }
+  ],
+  "layers": [],
+  "tour": []
+}
