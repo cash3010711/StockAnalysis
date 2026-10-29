@@ -75,3 +75,32 @@ class InsufficientDataError(FinMindError):
     ):
         super().__init__(message, hint)
         self.status_code = 400
+
+
+class GeminiApiKeyMissingError(FinMindError):
+    """Raised when GEMINI_API_KEY is not configured."""
+    code: str = "GEMINI_API_KEY_MISSING"
+    status_code: int = 400
+
+    def __init__(
+        self,
+        message: str = "尚未設定 Gemini API 金鑰",
+        hint: str = "請至 https://aistudio.google.com/ 申請金鑰並在 backend/.env 中設定 GEMINI_API_KEY=<your_api_key>",
+    ):
+        super().__init__(message, hint)
+        self.status_code = 400
+
+
+class AiAdvisorError(FinMindError):
+    """Raised when AI advice generation fails."""
+    code: str = "AI_ADVISOR_ERROR"
+    status_code: int = 500
+
+    def __init__(
+        self,
+        message: str = "AI 戰略分析生成失敗",
+        hint: str = "請稍後重試或確認網路與 API 配額狀態",
+    ):
+        super().__init__(message, hint)
+        self.status_code = 500
+

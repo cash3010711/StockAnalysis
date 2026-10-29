@@ -26,6 +26,7 @@ def test_schema_tables_and_columns(repo):
             "quarterly_financials",
             "stock_info",
             "fetch_log",
+            "ai_advice_cache",
         }
         assert expected_tables.issubset(tables)
 
@@ -156,4 +157,48 @@ def test_scanner_cache_repository_queries(repo):
     # 4. get_industry_categories
     categories = repo.get_industry_categories()
     assert categories == ["其他電子業", "半導體業"]
+
+
+def test_ai_advice_cache(repo):
+    """Verify ai_advice_cache save, get, overwrite, and isolation."""
+    # Table schema check
+    with repo._get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(ai_advice_cache)")
+        columns = {row["name"]: row for row in cursor.fetchall()}
+        assert "stock_id" in columns
+        assert "eval_date" in columns
+        assert "content" in columns
+        assert "created_at" in columns
+        assert columns["stock_id"]["pk"] == 1
+        assert columns["eval_date"]["pk"] == 2
+
+    # Not found
+    assert repo.get_ai_advice("2330", "2026-03-30") is None
+
+    # Save
+    repo.save_ai_advice("2330", "2026-03-30", "初步戰略分析：逢低承接")
+    item = repo.get_ai_advice("2330", "2026-03-30")
+    assert item is not None
+    assert item["stock_id"] == "2330"
+    assert item["eval_date"] == "2026-03-30"
+    assert item["content"] == "初步戰略分析：逢低承接"
+    assert item["created_at"] is not None
+
+    # Overwrite
+    repo.save_ai_advice("2330", "2026-03-30", "更新戰略分析：突破追價")
+    updated = repo.get_ai_advice("2330", "2026-03-30")
+    assert updated is not None
+    assert updated["content"] == "更新戰略分析：突破追價"
+
+    # Isolation by date
+    repo.save_ai_advice("2330", "2026-03-31", "次日分析：續抱")
+    assert repo.get_ai_advice("2330", "2026-03-30")["content"] == "更新戰略分析：突破追價"
+    assert repo.get_ai_advice("2330", "2026-03-31")["content"] == "次日分析：續抱"
+
+    # Isolation by stock_id
+    repo.save_ai_advice("2317", "2026-03-30", "鴻海分析：觀望")
+    assert repo.get_ai_advice("2330", "2026-03-30")["content"] == "更新戰略分析：突破追價"
+    assert repo.get_ai_advice("2317", "2026-03-30")["content"] == "鴻海分析：觀望"
+
 

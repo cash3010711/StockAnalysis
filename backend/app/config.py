@@ -23,3 +23,14 @@ def is_empty_token_allowed() -> bool:
     """Return whether empty FinMind token is allowed (uses public quota)."""
     return os.getenv("FINMIND_ALLOW_NO_TOKEN", "false").lower() in ("true", "1", "yes")
 
+
+def get_gemini_api_key() -> str:
+    """Return GEMINI_API_KEY from environment."""
+    return os.getenv("GEMINI_API_KEY", "").strip()
+
+
+def has_gemini_api_key() -> bool:
+    """Return whether GEMINI_API_KEY is configured and non-empty."""
+    return bool(get_gemini_api_key())
+
+

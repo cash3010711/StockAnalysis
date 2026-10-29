@@ -247,6 +247,18 @@ class CacheRepository:
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_market_index_id_date ON market_index(index_id, date)")
 
+            # 13. AI Advice Cache
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ai_advice_cache (
+                stock_id TEXT NOT NULL,
+                eval_date TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (stock_id, eval_date)
+            )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_ai_advice_cache_stock_eval ON ai_advice_cache(stock_id, eval_date)")
+
             conn.commit()
 
     # --- Fetch Log Operations ---
@@ -1227,4 +1239,34 @@ class CacheRepository:
                 )
             conn.commit()
         return list(set(group_ids))
+
+    # --- AI Advice Cache Operations ---
+
+    def get_ai_advice(self, stock_id: str, eval_date: str) -> Optional[Dict[str, Any]]:
+        """Get cached AI advice for a stock on a specific evaluation date."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT stock_id, eval_date, content, created_at FROM ai_advice_cache WHERE stock_id = ? AND eval_date = ?",
+                (stock_id.strip(), eval_date.strip()),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def save_ai_advice(self, stock_id: str, eval_date: str, content: str) -> None:
+        """Save or overwrite AI advice in cache."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO ai_advice_cache (stock_id, eval_date, content, created_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(stock_id, eval_date) DO UPDATE SET
+                    content = excluded.content,
+                    created_at = CURRENT_TIMESTAMP
+                """,
+                (stock_id.strip(), eval_date.strip(), content),
+            )
+            conn.commit()
+
 

@@ -1,15 +1,20 @@
 """Analysis API endpoint."""
 from dataclasses import asdict
+import json
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 import pandas as pd
 from pydantic import BaseModel
 
+from app.analysis.ai_advisor import stream_ai_advice
 from app.analysis.assembler import assemble_today_analysis
 from app.analysis.indicators import compute_all_indicators
 from app.api.stocks import get_data_service
 from app.backtest.runner import run_all_backtests
+from app.config import has_gemini_api_key
 from app.data.exceptions import (
+    GeminiApiKeyMissingError,
     InsufficientDataError,
     StockNotSupportedError,
 )
@@ -286,3 +291,127 @@ def analyze_stock(
         "historical_lift": today_analysis.historical_lift,
         "triggered_factors": today_analysis.triggered_factors,
     }
+
+
+@router.get("/analysis/{stock_id}/ai-advice")
+def stream_stock_ai_advice(
+    stock_id: str,
+    force: bool = Query(False, description="是否強制重新生成並覆寫快取"),
+    service: DataService = Depends(get_data_service),
+):
+    """Stream AI swing trading advice for a stock, with SQLite caching."""
+    sid = (stock_id or "").strip()
+    if not sid or len(sid) != 4 or not sid.isdigit():
+        raise StockNotSupportedError()
+
+    if service.repo.is_unsupported_stock(sid):
+        raise StockNotSupportedError()
+
+    # Sync fresh data
+    sync_result = service.sync_stock(sid)
+    eval_date = sync_result.latest_k_date
+    if not eval_date:
+        raise InsufficientDataError(
+            message="歷史資料不足，無法進行分析",
+            hint="查無該股票的歷史日 K 資料",
+        )
+
+    # 1. Cache hit check (when force=False)
+    if not force:
+        cached = service.repo.get_ai_advice(sid, eval_date)
+        if cached:
+            def cached_stream():
+                payload = {
+                    "text": cached["content"],
+                    "delta": cached["content"],
+                    "cached": True,
+                    "done": True,
+                }
+                yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+            return StreamingResponse(
+                cached_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
+                },
+            )
+
+    # 2. Key check before running generation
+    if not has_gemini_api_key():
+        raise GeminiApiKeyMissingError()
+
+    # 3. Assemble stock analysis data
+    data = service.as_of(sid, eval_date)
+    daily_k = data.get("daily_k", pd.DataFrame())
+    if daily_k.empty or len(daily_k) < 35:
+        raise InsufficientDataError(
+            message="歷史資料不足，無法進行分析",
+            hint="歷史交易日過少（需至少 35 個交易日），尚無法計算技術指標",
+        )
+
+    market_index_df = service.repo.get_market_index("TAIEX")
+    today_analysis = assemble_today_analysis(
+        stock_id=sid,
+        daily_k=daily_k,
+        monthly_revenue=data.get("monthly_revenue", pd.DataFrame()),
+        quarterly_financials=data.get("quarterly_financials", pd.DataFrame()),
+        institutional_investors=data.get("institutional_investors", pd.DataFrame()),
+        margin_short=data.get("margin_short", pd.DataFrame()),
+        market_index_k=market_index_df,
+    )
+    df_indicators = compute_all_indicators(daily_k)
+    stock_name = service.get_stock_name(sid)
+
+    # 4. Stream and cache result
+    def ai_stream():
+        accumulated: List[str] = []
+        try:
+            for chunk in stream_ai_advice(
+                stock_id=sid,
+                stock_name=stock_name,
+                today_analysis=today_analysis,
+                df_indicators=df_indicators,
+            ):
+                accumulated.append(chunk)
+                payload = {
+                    "text": chunk,
+                    "delta": chunk,
+                    "cached": False,
+                    "done": False,
+                }
+                yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+            # Cache accumulated content
+            full_content = "".join(accumulated)
+            if full_content.strip():
+                service.repo.save_ai_advice(sid, eval_date, full_content)
+
+            done_payload = {
+                "text": "",
+                "delta": "",
+                "cached": False,
+                "done": True,
+            }
+            yield f"data: {json.dumps(done_payload, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            err_payload = {
+                "error": str(e),
+                "code": "AI_GENERATION_FAILED",
+                "done": True,
+            }
+            yield f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        ai_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+

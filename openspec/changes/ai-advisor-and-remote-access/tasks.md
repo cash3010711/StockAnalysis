@@ -2,15 +2,15 @@
 
 ## 1. 網路存取與環境配置
 
-- [ ] 1.1 更新 `backend/pyproject.toml` 與依賴清單加入 `google-genai`，並驗證 `uv sync` 能順利安裝
-- [ ] 1.2 在 `backend/.env.example` 新增 `GEMINI_API_KEY=` 與說明，在 `backend/app/config.py` 加入金鑰讀取與驗證輔助函式，並執行單元測試驗證
-- [ ] 1.3 調整 `frontend/vite.config.ts` 開啟 `server.host: '0.0.0.0'`，驗證在區網與本機皆可正常存取前端頁面
+- [x] 1.1 更新 `backend/pyproject.toml` 與依賴清單加入 `google-genai`，並驗證 `uv sync` 能順利安裝
+- [x] 1.2 在 `backend/.env.example` 新增 `GEMINI_API_KEY=` 與說明，在 `backend/app/config.py` 加入金鑰讀取與驗證輔助函式，並執行單元測試驗證
+- [x] 1.3 調整 `frontend/vite.config.ts` 開啟 `server.host: '0.0.0.0'`，驗證在區網與本機皆可正常存取前端頁面
 
 ## 2. 後端 AI 戰略顧問模組與當日快取
 
-- [ ] 2.1 在 `backend/app/data/cache.py` 新增 `ai_advice_cache` 資料表結構及 `get_ai_advice` / `save_ai_advice` 方法，並撰寫測試驗證讀寫與覆寫邏輯
-- [ ] 2.2 實作 `backend/app/analysis/ai_advisor.py`：組裝個股量化數據 Prompt、整合 Gemini API 流式生成，並加入 API Key 缺失與異常處理機制
-- [ ] 2.3 在 `backend/app/api/analysis.py` 新增 `/api/analysis/{stock_id}/ai-advice` 串流端點（支援 `force=true` 重新生成），並以單元測試驗證回傳格式與快取命中行為
+- [x] 2.1 在 `backend/app/data/cache.py` 新增 `ai_advice_cache` 資料表結構及 `get_ai_advice` / `save_ai_advice` 方法，並撰寫測試驗證讀寫與覆寫邏輯
+- [x] 2.2 實作 `backend/app/analysis/ai_advisor.py`：組裝個股量化數據 Prompt、整合 Gemini API 流式生成，並加入 API Key 缺失與異常處理機制
+- [x] 2.3 在 `backend/app/api/analysis.py` 新增 `/api/analysis/{stock_id}/ai-advice` 串流端點（支援 `force=true` 重新生成），並以單元測試驗證回傳格式與快取命中行為
 
 ## 3. 前端 AI 卡片元件與打字機流式輸出
 
