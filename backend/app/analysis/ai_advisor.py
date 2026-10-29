@@ -7,7 +7,7 @@ from app.analysis.assembler import TodayAnalysis
 from app.config import get_gemini_api_key, has_gemini_api_key
 from app.data.exceptions import AiAdvisorError, GeminiApiKeyMissingError
 
-DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 
 
 def build_advisor_prompt(
@@ -169,17 +169,26 @@ def stream_ai_advice(
         df_indicators=df_indicators,
     )
 
-    try:
-        response_stream = client.models.generate_content_stream(
-            model=model,
-            contents=prompt,
-        )
-        for chunk in response_stream:
-            text = getattr(chunk, "text", None)
-            if text:
-                yield text
-    except Exception as e:
-        raise AiAdvisorError(f"Gemini API 串流生成失敗: {str(e)}")
+    models_to_try = [model]
+    if model != "gemini-3.5-flash":
+        models_to_try.append("gemini-3.5-flash")
+
+    last_err: Optional[Exception] = None
+    for m in models_to_try:
+        try:
+            response_stream = client.models.generate_content_stream(
+                model=m,
+                contents=prompt,
+            )
+            for chunk in response_stream:
+                text = getattr(chunk, "text", None)
+                if text:
+                    yield text
+            return
+        except Exception as e:
+            last_err = e
+
+    raise AiAdvisorError(f"Gemini API 串流生成失敗: {str(last_err)}")
 
 
 def generate_ai_advice(
