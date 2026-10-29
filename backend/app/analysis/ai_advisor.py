@@ -7,7 +7,7 @@ from app.analysis.assembler import TodayAnalysis
 from app.config import get_gemini_api_key, has_gemini_api_key
 from app.data.exceptions import AiAdvisorError, GeminiApiKeyMissingError
 
-DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
 
 def build_advisor_prompt(
