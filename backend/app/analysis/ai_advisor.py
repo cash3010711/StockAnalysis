@@ -1,4 +1,5 @@
 """AI Stock Swing Trading Advisor using Google Gemini API."""
+import os
 from typing import Any, Generator, List, Optional
 import pandas as pd
 
@@ -6,7 +7,7 @@ from app.analysis.assembler import TodayAnalysis
 from app.config import get_gemini_api_key, has_gemini_api_key
 from app.data.exceptions import AiAdvisorError, GeminiApiKeyMissingError
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
 
 def build_advisor_prompt(
