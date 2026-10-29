@@ -5,6 +5,7 @@ import {
   fetchWatchlist,
   removeFromWatchlist,
 } from './api/client'
+import { AiAdvisorCard } from './components/AiAdvisorCard'
 import { AlertBanner } from './components/AlertBanner'
 import { Disclaimer } from './components/Disclaimer'
 import { EvaluationHeader } from './components/EvaluationHeader'
@@ -338,6 +339,13 @@ export function App() {
                 isInWatchlist={watchlist.some((w) => w.stock_id === analysis.stock_id)}
                 onToggleWatchlist={handleToggleWatchlist}
                 isWatchlistLoading={watchlistLoading}
+              />
+
+              {/* AI Advisor Card: 盤後戰略解讀 */}
+              <AiAdvisorCard
+                stockId={analysis.stock_id}
+                stockName={analysis.stock_name}
+                evaluationDate={analysis.evaluation_date}
               />
 
               {/* 2. Fundamental and Chips Layer Summaries */}

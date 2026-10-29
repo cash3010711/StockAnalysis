@@ -17,21 +17,32 @@
 
 ---
 
-## 申請 FinMind Token 步驟
+## 申請與配置 API 金鑰 (API Keys Configuration)
 
+在專案 `backend/` 目錄下建立 `.env` 檔案：
+```powershell
+Copy-Item backend\.env.example backend\.env
+```
+
+### 1. FinMind Token（行情與基本面數據源）
 本系統行情與財報資料來源為 FinMind 免費 API（每小時約 600 次請求額度）：
-
 1. 前往 [FinMind 官方網站](https://finmind.github.io/) 註冊帳號。
 2. 登入後至個人設定或 API 金鑰頁面取得您的 **API Token**。
-3. 在專案根目錄或 `backend/` 目錄下建立 `.env` 檔案：
-   ```powershell
-   Copy-Item backend\.env.example backend\.env
-   ```
-4. 開啟 `backend/.env`，將取得的 Token 填入：
+3. 開啟 `backend/.env`，填入：
    ```ini
    FINMIND_TOKEN=貼上您的FinMindToken
    ```
 
+### 2. Google Gemini API Key（AI 盤後戰略顧問）
+本系統整合 Google Gemini 提供個股結構化進出場戰略解讀與打字機流式輸出：
+1. 前往 [Google AI Studio](https://aistudio.google.com/) 登入 Google 帳號。
+2. 點擊「Get API key」免費建立金鑰。
+3. 開啟 `backend/.env`，填入：
+   ```ini
+   GEMINI_API_KEY=貼上您的GeminiAPIKey
+   ```
+
+> **提示：** 若尚未設定 `GEMINI_API_KEY`，系統仍可正常執行技術指標、三層檢驗與歷史回測運算，僅 AI 解讀卡片會提示金鑰配置引導。
 > **注意：** `.env` 與快取資料庫 `data/cache.db` 已被 `.gitignore` 排除，不會被提交至版本控制中。
 
 ---
@@ -79,6 +90,35 @@ npm run dev
 
 - 前端預設網址：`http://localhost:5173`（若 5173 埠號已被占用，Vite 會自動依序使用 5174）
 - 前端已設定 `/api` 代理（Proxy）導向後端 `http://127.0.0.1:8000`，開啟頁面即可看到後端健康檢查狀態。
+
+---
+
+## Tailscale 跨裝置私有遠端存取指南 (Remote Access)
+
+本專案支援透過 [Tailscale](https://tailscale.com/) 建立安全的點對點私有網格 VPN（Mesh VPN），讓您在戶外也能使用手機或平板隨時瀏覽本機分析儀與 AI 戰略：
+
+### 1. 安裝與登入 Tailscale
+1. 在執行本專案的 Windows 電腦上下載並安裝 [Tailscale for Windows](https://tailscale.com/download/windows)，使用個人帳號登入。
+2. 在手機或平板上下載 Tailscale App（iOS / Android 皆有），登入同一帳號。
+
+### 2. 啟動前後端服務（監聽外部連線）
+- **後端 API**：啟動時指定 host 為 `0.0.0.0`：
+  ```powershell
+  cd backend
+  uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+  ```
+- **前端 Web**：前端已於 `vite.config.ts` 開放 `host: '0.0.0.0'`，正常啟動即可：
+  ```powershell
+  cd frontend
+  npm run dev
+  ```
+
+### 3. 在手機或平板瀏覽存取
+1. 在手機上開啟 Tailscale App，找到 Windows 電腦的專屬 Tailscale IP（例如 `100.x.y.z`）或 MagicDNS 裝置名稱。
+2. 在手機瀏覽器輸入：`http://100.x.y.z:5173`
+3. 即可在手機上流暢查看盤後選股、圖表、並點擊「✨ 一鍵生成戰略分析」享受即時打字機串流！
+
+> **安全性優勢：** 連線全程經過 WireGuard 點對點端到端加密，免開路由器連接埠（NAT/Port Forwarding），零公網暴露風險。
 
 ---
 

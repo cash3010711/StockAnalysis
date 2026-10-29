@@ -1,5 +1,6 @@
 import { ApiError } from '../types/api'
 import type {
+  AiAdviceEvent,
   AnalysisResponse,
   ApiErrorData,
   ScannerOptionsResponse,
@@ -380,5 +381,102 @@ export async function removeFromWatchlist(
   }
 
   return await res.json()
+}
+
+export interface StreamAiAdviceOptions {
+  force?: boolean
+  onChunk?: (delta: string, accumulated: string) => void
+  onEvent?: (event: AiAdviceEvent) => void
+  signal?: AbortSignal
+}
+
+export async function streamAiAdvice(
+  stockId: string,
+  options?: StreamAiAdviceOptions
+): Promise<string> {
+  const trimmed = stockId.trim()
+  if (!trimmed) {
+    throw new ApiError(400, {
+      code: 'INVALID_STOCK_ID',
+      message: '請輸入股票代號',
+    })
+  }
+
+  const query = options?.force ? '?force=true' : ''
+  const res = await fetch(`/api/analysis/${encodeURIComponent(trimmed)}/ai-advice${query}`, {
+    signal: options?.signal,
+  })
+
+  if (!res.ok) {
+    let errorData: ApiErrorData = { code: 'HTTP_ERROR', message: `HTTP ${res.status}` }
+    try {
+      errorData = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, errorData)
+  }
+
+  if (!res.body) {
+    return ''
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let accumulated = ''
+
+  const processLine = (line: string) => {
+    let raw = line.trim()
+    if (!raw) return
+    if (raw.startsWith('data:')) {
+      raw = raw.replace(/^data:\s*/, '').trim()
+    }
+    if (!raw) return
+    try {
+      const event = JSON.parse(raw) as AiAdviceEvent
+      if (event.error) {
+        throw new ApiError(500, {
+          code: event.code || 'AI_GENERATION_FAILED',
+          message: event.error,
+        })
+      }
+      if (event.cached && event.text) {
+        accumulated = event.text
+        options?.onChunk?.(event.text, accumulated)
+      } else if (event.delta) {
+        accumulated += event.delta
+        options?.onChunk?.(event.delta, accumulated)
+      }
+      options?.onEvent?.(event)
+    } catch (e) {
+      if (e instanceof ApiError) throw e
+      // ignore parse error of single malformed line
+    }
+  }
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const line of lines) {
+        processLine(line)
+      }
+    }
+    buffer += decoder.decode()
+    if (buffer.trim()) {
+      processLine(buffer)
+    }
+  } catch (err: unknown) {
+    if ((err as Error)?.name === 'AbortError' || options?.signal?.aborted) {
+      return accumulated
+    }
+    throw err
+  }
+
+  return accumulated
 }
 

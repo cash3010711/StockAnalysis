@@ -302,3 +302,13 @@ export type ScanStreamEvent =
   | ScanMatchEvent
   | ScanProgressEvent
   | ScanDoneEvent
+
+export interface AiAdviceEvent {
+  text?: string
+  delta?: string
+  cached?: boolean
+  done?: boolean
+  error?: string
+  code?: string
+}
+

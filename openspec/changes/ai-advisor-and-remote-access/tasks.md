@@ -14,14 +14,14 @@
 
 ## 3. 前端 AI 卡片元件與打字機流式輸出
 
-- [ ] 3.1 於 `frontend/src/api/client.ts` 新增 AI 戰略解讀之串流呼叫方法（支援 Fetch ReadableStream / SSE 接收）
-- [ ] 3.2 建立 `frontend/src/components/AiAdvisorCard.tsx` 元件，實作一鍵分析按鈕、打字機動態輸出、Markdown 排版與重新生成按鈕
-- [ ] 3.3 於 `frontend/src/App.tsx` 的「個股深度分析」中整合 `AiAdvisorCard`，並撰寫前端元件測試驗證狀態切換與流式文字更新
+- [x] 3.1 於 `frontend/src/api/client.ts` 新增 AI 戰略解讀之串流呼叫方法（支援 Fetch ReadableStream / SSE 接收）
+- [x] 3.2 建立 `frontend/src/components/AiAdvisorCard.tsx` 元件，實作一鍵分析按鈕、打字機動態輸出、Markdown 排版與重新生成按鈕
+- [x] 3.3 於 `frontend/src/App.tsx` 的「個股深度分析」中整合 `AiAdvisorCard`，並撰寫前端元件測試驗證狀態切換與流式文字更新
 
 ## 4. 整合驗證與文檔更新
 
-- [ ] 4.1 執行完整端到端測試：驗證「2330」個股點擊生成 AI 戰略、流式呈現、二次點擊讀取快取以及點擊重新生成之全流程
-- [ ] 4.2 更新 `README.md`：補充 Tailscale 跨裝置連線設定指南、Gemini API 金鑰申請與配置說明，並執行全專案自動化測試套件（`uv run pytest` 與 `npm run build`）確認零迴歸
+- [x] 4.1 執行完整端到端測試：驗證「2330」個股點擊生成 AI 戰略、流式呈現、二次點擊讀取快取以及點擊重新生成之全流程
+- [x] 4.2 更新 `README.md`：補充 Tailscale 跨裝置連線設定指南、Gemini API 金鑰申請與配置說明，並執行全專案自動化測試套件（`uv run pytest` 與 `npm run build`）確認零迴歸
 
 ## Workflow follow-up
 
